@@ -115,6 +115,7 @@
     if (!m) return el('div', { class: 'play-card' }, [el('p', { class: 'muted' }, ['Your character isn’t in the party any more.'])]);
     const bar = el('div', { class: 'chiprow play-bar' }, [
       el('a', { class: 'btn ghost', href: CFG.pages.table + '?view=player', target: (CFG.channel || 'vtt') + '-player' }, ['Open the table']),
+      button('Download my character', () => Sys.downloadCharacter(m), 'ghost'),   // as played, right now — the file the join screen takes back
       button('Release character', () => Session.unclaim(m.id), 'ghost'),
     ]);
     const clocks = (State.state.clocks || []).filter((c) => c.visible !== false);

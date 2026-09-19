@@ -78,7 +78,8 @@ follows whichever map the GM's table is showing. Map images live in `assets/maps
 made on the site's creator: it joins the party (and so the campaign pack) and is theirs the
 moment the room is online —
 and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes; they
-can open the table in player view and move their own token. Everything they do shows up live
+can open the table in player view and move their own token, and **Download my character** saves
+the character as played right now — the same file the join screen takes back next time. Everything they do shows up live
 on the GM's page and table; everything the GM does to their character shows up live on theirs.
 They never receive GM notes, hidden tokens or unrevealed fog; they may not change what the
 playbook decides.

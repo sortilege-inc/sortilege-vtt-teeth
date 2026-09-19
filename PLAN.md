@@ -183,6 +183,12 @@ is ready — they take their seat when you join." with *Load a different charact
 the player landed on Ysolde Marrow's sheet, claimed, pending cleared, no error; the GM's party
 and the room's claims showed her with the file name.
 
+**Download from the sheet (2026-09-19, owner's ask):** decision 33. Proof over the deployed
+Worker (room 4FLVV): Bartholomew Crane joined by file; the GM wrote a GM-only note on him and the
+player ticked Stress to 2; **Download my character** produced `bartholomew-crane.teeth-character.json`
+with Stress 2, the player's own note, the file's source, no `preview` — and an empty GM-notes
+field, while the GM's copy still held the note.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -215,6 +221,7 @@ and the room's claims showed her with the file name.
 | 30 | Custom player characters enter a campaign through the Campaign panel's **Player characters** section (or Party › Add from file…): a loaded character is a party member with a `source` (file name, when exported, when loaded), so it is in the pack's `party` and survives Save / Restore; it can be downloaded again as a character file from the same list. The creator's last step names the download plainly: **Download as JSON** | Owner's ask 2026-09-19. The party is already what the pack carries; the section makes the loading and its consequence visible rather than adding a second store. |
 | 31 | A player may bring their own character: the claim screen's **Load my character file…** commits `addPartyMember` and claims it. The room admits that op from a player — even one who has not claimed yet (`opts.unclaimed`) — only for a member carrying `source.kind === 'file'` (a character file); every other op still needs a claimed character, and the GM's notes never travel. Found and fixed alongside: the op wrote clue keys with a NUL separator while the Scene panel read `scene::clue`, so a revealed clue did not survive a redraw; both now use `::` | Owner's ask 2026-09-19. The rule is the narrowest that lets a file in. |
 | 32 | The player's character file can be loaded before joining: it waits (in that tab's sessionStorage, so a reload keeps it) and takes its seat — `addPartyMember` + claim — the first time the session reports online without a claimed character. One loader serves the join and claim screens | Owner's ask 2026-09-19. |
+| 33 | The player's sheet has **Download my character**: the party member as the player holds it now — live tracks, picks, their notes — as a character file; the GM's notes are not in the player's copy, so they cannot leak into it. A file downloaded here loads again on the join screen | Owner's ask 2026-09-19. The character belongs to the player; the file is how they keep it. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |
