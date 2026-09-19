@@ -40,16 +40,22 @@ function randomToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ALLOWED_ORIGIN: the site's origins, comma-separated (the custom domain and the github.io
+// fallback); localhost is always allowed for `wrangler dev`.
+function allowedOrigins(env: Env): string[] {
+  return env.ALLOWED_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean);
+}
+
 function originAllowed(env: Env, origin: string | null): boolean {
   if (!origin) return true;
-  if (origin === env.ALLOWED_ORIGIN) return true;
+  if (allowedOrigins(env).indexOf(origin) !== -1) return true;
   return /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
 }
 
 function corsHeaders(env: Env, request: Request): HeadersInit {
   const origin = request.headers.get('Origin');
   return {
-    'Access-Control-Allow-Origin': origin && originAllowed(env, origin) ? origin : env.ALLOWED_ORIGIN,
+    'Access-Control-Allow-Origin': origin && originAllowed(env, origin) ? origin : allowedOrigins(env)[0],
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     Vary: 'Origin',

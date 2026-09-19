@@ -7,8 +7,8 @@ copy its shape ([PLAYBOOK.md](PLAYBOOK.md)). Plan, decisions and milestones: [PL
 
 Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessions.
 
-**Live:** https://sortilege-inc.github.io/sortilege-vtt-teeth/ (the site: the rules, the published
-characters) · https://sortilege-inc.github.io/sortilege-vtt-teeth/gm/ (the GM's table) ·
+**Live:** https://teeth.sortilege.online/ (the site: the rules, the published characters, the
+creator) · https://teeth.sortilege.online/gm/ (the GM's table) · the github.io address redirects ·
 Worker: `https://sortilege-vtt-teeth.sortilege.workers.dev` ·
 first campaign: `~/Sortilege/Campaigns/2026 TEETH/teeth-campaign-blood-cotillion/` (its own repo).
 
