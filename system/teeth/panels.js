@@ -183,7 +183,7 @@
     const draw = () => {
       container.innerHTML = '';
       const party = S().party || [];
-      const templates = D.all(campaignBooks()).filter((e) => e.form === 'TEMPLATE');
+      const templates = D.all(campaignBooks()).filter((e) => e.form === 'TEMPLATE' || window.TeethSheet.standalone(e));
       const pick = el('select', { class: 'scope' }, [el('option', { value: '' }, ['Add a character from a playbook…'])]);
       let lastBook = null;
       templates.forEach((t) => {
@@ -191,7 +191,7 @@
           lastBook = t.book;
           pick.appendChild(el('option', { disabled: true }, ['— ' + (D.book(t.book) || {}).title]));
         }
-        pick.appendChild(el('option', { value: t.id }, [t.name + (t.type ? ' · ' + t.type : '')]));
+        pick.appendChild(el('option', { value: t.id }, [t.name + (t.form === 'ACTOR' ? ' · shared sheet' : t.type ? ' · ' + t.type : '')]));
       });
       pick.addEventListener('change', () => {
         if (!pick.value) return;
@@ -215,6 +215,66 @@
             el('div', { class: 'card-desc' }, [tracks]),
           ]),
           button('remove', () => { if (confirm(`Remove ${m.name} from the party?`)) State.commit('removePartyMember', [m.id]); }, 'ghost tiny'),
+        ]));
+      });
+    };
+    ctx.on('state:changed', draw);
+    ctx.on('state:remote', draw);
+    draw();
+  }
+
+  // ── Clocks ─────────────────────────────────────────────────────────
+  // Shared clocks: made from the books' Clock entities (the Fate Clock, a Suspicion Clock, the
+  // Hogsiege Preparedness Clock…) or ad hoc; each visible to players or GM-only.
+  function clockBoxes(c) {
+    const row = el('div', { class: 'boxes clock' });
+    for (let i = 1; i <= c.segments; i++) {
+      row.appendChild(el('button', { class: 'box' + (i <= c.filled ? ' on' : ''), type: 'button', onclick: () => State.commit('setClock', [Object.assign({}, c, { filled: i <= c.filled && i === c.filled ? i - 1 : i })]) }));
+    }
+    return row;
+  }
+
+  function renderClocks(container, ctx) {
+    const draw = () => {
+      container.innerHTML = '';
+      const clocks = S().clocks || [];
+      const pick = el('select', { class: 'scope' }, [el('option', { value: '' }, ['Start a clock…'])]);
+      D.byType('Clock', campaignBooks()).concat(D.byType('Track', campaignBooks())).forEach((e) => {
+        const seg = D.propValue(e, 'Segments');
+        if (typeof seg === 'number') pick.appendChild(el('option', { value: e.id }, [`${e.name} (${seg}) · ${(D.book(e.book) || {}).title}`]));
+      });
+      pick.appendChild(el('option', { value: '__custom' }, ['a clock of my own…']));
+      pick.addEventListener('change', () => {
+        if (!pick.value) return;
+        let clock;
+        if (pick.value === '__custom') {
+          const name = prompt('Clock name');
+          const n = name && parseInt(prompt('Segments (4, 6, 8, 12…)', '6'), 10);
+          if (name && n) clock = { id: State.genId('ck'), name, segments: n, filled: 0, visible: true, source: null };
+        } else {
+          const e = D.entity(pick.value);
+          clock = { id: State.genId('ck'), name: e.name, segments: D.propValue(e, 'Segments'), filled: 0, visible: true, source: e.id };
+        }
+        pick.value = '';
+        if (clock) State.commit('setClock', [clock]);
+      });
+      container.appendChild(pick);
+      if (!clocks.length) container.appendChild(el('div', { class: 'empty' }, ['No clocks running.']));
+      clocks.forEach((c) => {
+        const src = c.source ? D.entity(c.source) : null;
+        const thresholds = src ? src.thresholds.map((th) => { const seg = (th.fields || []).find((f) => f.name === 'Segment'); const eff = (th.fields || []).find((f) => f.name === 'Effect'); return seg && eff ? { at: seg.value, text: eff.value } : null; }).filter(Boolean) : [];
+        const hit = thresholds.filter((th) => c.filled >= th.at).pop();
+        container.appendChild(el('div', { class: 'clock-row' + (c.visible === false ? ' gm-only' : '') }, [
+          el('div', { class: 'track-head' }, [
+            el('span', { class: 'track-name' }, [src ? E.link({ hash: src.id, name: c.name }) : c.name]),
+            el('span', { class: 'muted' }, [`${c.filled} / ${c.segments}`]),
+          ]),
+          clockBoxes(c),
+          hit ? el('div', { class: 'threshold' }, [hit.text]) : null,
+          el('div', { class: 'chiprow' }, [
+            el('label', { class: 'small' }, [el('input', { type: 'checkbox', checked: c.visible !== false || null, onchange: (ev) => State.commit('setClock', [Object.assign({}, c, { visible: ev.target.checked })]) }), ' players see it']),
+            button('remove', () => State.commit('removeClock', [c.id]), 'ghost tiny'),
+          ]),
         ]));
       });
     };
@@ -375,6 +435,7 @@
   Panels.register('scene', { label: 'Scene', render: renderScene });
   Panels.register('inspector', { label: 'Inspector', render: renderInspector });
   Panels.register('party', { label: 'Party', render: renderParty });
+  Panels.register('clocks', { label: 'Clocks', render: renderClocks });
   Panels.register('log', { label: 'Dice log', render: renderLog });
   Panels.register('cast', { label: 'Cast', render: renderCast });
   Panels.register('rules', { label: 'Rules & Books', render: renderRules });

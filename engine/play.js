@@ -66,7 +66,9 @@
       el('a', { class: 'btn ghost', href: 'vtt.html?view=player', target: (CFG.channel || 'vtt') + '-player' }, ['Open the table']),
       button('Release character', () => Session.unclaim(m.id), 'ghost'),
     ]);
-    return el('div', { class: 'play-card wide' }, [bar, Sys.liveSheet(m, { player: true })]);
+    const clocks = (State.state.clocks || []).filter((c) => c.visible !== false);
+    const strip = clocks.length ? el('div', { class: 'clock-strip' }, clocks.map((c) => el('div', { class: 'clock-row' }, [el('div', { class: 'track-head' }, [el('span', { class: 'track-name' }, [c.name]), el('span', { class: 'muted' }, [`${c.filled} / ${c.segments}`])]), el('div', { class: 'boxes clock' }, Array.from({ length: c.segments }, (_, i) => el('span', { class: 'box' + (i < c.filled ? ' on' : '') })))]))) : null;
+    return el('div', { class: 'play-card wide' }, [bar, strip, Sys.liveSheet(m, { player: true })]);
   }
 
   function render() {

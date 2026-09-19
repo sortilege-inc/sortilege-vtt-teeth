@@ -16,8 +16,8 @@ Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessi
 | M3 — sheets, party, dice log, campaign pack | **landed** (2026-09-19) |
 | M4 — the table (maps, grid, tokens, fog, pings, player view) | **landed** (2026-09-19) |
 | M5 — Worker + rooms: players on their own devices | **landed** (2026-09-19) |
-| M6 — remaining modules, Outfit sheet, clocks | next |
-| M7 — deploy, first campaign pack | — |
+| M6 — the other books, the Outfit as a shared sheet, Clocks, table rolling | **landed** (2026-09-19) |
+| M7 — deploy, first campaign pack | next |
 
 ## Running it
 
@@ -28,10 +28,12 @@ python3 -m http.server 8735
 then open `http://localhost:8735/`. The GM page opens on a *Blood Cotillion* campaign: **Module**
 (scenes by phase, tick as you go) · **Scene** (the book's text, read-aloud, clues you reveal,
 resolutions, GM guidance, your notes) · **Inspector** (whatever you last clicked). The sidebar
-swaps in **Party** (add a character from any playbook in the campaign's books; the live sheet —
-tracks, ratings, rolls, picks, items, injuries, notes — opens in the Inspector), **Dice log**,
+swaps in **Party** (add a character from any playbook in the campaign's books — or the Outfit as a
+shared sheet; the live sheet — tracks, ratings, rolls, picks, items, injuries, notes — opens in the
+Inspector), **Clocks** (the books' clocks or your own, each GM-only or shown to players), **Dice log**,
 **Cast**, **Rules & Books** (search everything with `/`, or browse a book), **Lore** and
-**Campaign** (which modules and books are in play; save / restore the campaign as a pack).
+**Campaign** (which modules and books are in play; save / restore the campaign as a pack). Any
+table the books roll on has a **Roll on this table** button in the Inspector.
 Everything you tick or type is saved in this browser as you go.
 
 **Open table** puts the current scene's map in its own window (`vtt.html`): grid calibration,

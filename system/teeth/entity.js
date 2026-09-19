@@ -91,7 +91,10 @@ window.TeethEntity = (function () {
       paragraphs(e.desc),
       el('div', { class: 'props' }, propRows(e, ['Name'])),
       section('Choices', e.choices.length ? el('div', {}, e.choices.map((c) => c.rubric ? el('div', { class: 'rubric' }, [c.rubric]) : el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [c.name + (c.pick ? ' · pick ' + c.pick : '')]), el('div', { class: 'prop-v chips' }, c.items.map((it) => link(it)))]))) : null),
-      section('Entries', e.entries.length ? (e.entries.every((x) => x.vk === 'entity') ? el('ul', { class: 'items' }, e.entries.map((x) => el('li', {}, [link({ hash: x.id, name: x.name })]))) : defTable(e.entries.filter((x) => x.vk === 'def'))) : null),
+      section('Entries', e.entries.length ? el('div', {}, [
+        rollable(e) ? rollButton(e) : null,
+        e.entries.every((x) => x.vk === 'entity') ? el('ul', { class: 'items' }, e.entries.map((x) => el('li', {}, [link({ hash: x.id, name: x.name })]))) : defTable(e.entries.filter((x) => x.vk === 'def')),
+      ]) : null),
       section('Thresholds', e.thresholds.length ? defTable(e.thresholds) : null),
       section('Outcomes', e.outcomes.length ? el('table', { class: 'grid' }, [el('tbody', {}, e.outcomes.map((o) => el('tr', {}, [el('th', {}, [o[0]]), el('td', {}, [o[1]])])))]) : null),
       e.table ? section('Table', el('table', { class: 'grid' }, [
@@ -108,6 +111,45 @@ window.TeethEntity = (function () {
       section('See also', e.refs.length ? el('div', { class: 'chips' }, dedupe(e.refs).map((r) => link({ hash: r.hash, name: r.name }, r.label))) : null),
     ]);
     return el('article', { class: 'entity' }, [head, body]);
+  }
+
+  // A table whose entries carry a Roll field is rolled on: pick an entry by its printed
+  // number (or range), highlight it, and log it.
+  function rollable(e) {
+    return e.entries.some((x) => x.vk === 'def' && (x.fields || []).some((f) => f.name === 'Roll'));
+  }
+
+  function rollOn(e) {
+    const rows = e.entries.filter((x) => x.vk === 'def');
+    const parsed = rows.map((r) => {
+      const roll = (r.fields || []).find((f) => f.name === 'Roll');
+      const m = /^(\d+)(?:-(\d+))?$/.exec(String(roll ? roll.value : ''));
+      return m ? { row: r, lo: parseInt(m[1], 10), hi: parseInt(m[2] || m[1], 10) } : null;
+    }).filter(Boolean);
+    if (!parsed.length) return null;
+    const max = Math.max.apply(null, parsed.map((p) => p.hi));
+    const n = 1 + Math.floor(Math.random() * max);
+    const hit = parsed.find((p) => n >= p.lo && n <= p.hi);
+    return { n, max, row: hit ? hit.row : null };
+  }
+
+  function rollButton(e) {
+    const out = el('div', { class: 'table-roll' });
+    const b = el('button', { class: 'btn ghost tiny roll', type: 'button' }, ['Roll on this table']);
+    b.addEventListener('click', () => {
+      const r = rollOn(e);
+      if (!r) return;
+      const text = r.row ? (r.row.fields.find((f) => f.name === 'Text') || {}).value : null;
+      const name = r.row ? (r.row.fields.find((f) => f.name === 'Name') || {}).value : null;
+      out.innerHTML = '';
+      out.appendChild(b);
+      out.appendChild(el('div', { class: 'roll-line' }, [el('b', {}, [`d${r.max}: ${r.n}`]), name ? el('span', {}, [name]) : null, el('span', { class: 'roll-text' }, [text || '—'])]));
+      window.VttState.commit('appendLog', [{ at: new Date().toISOString(), kind: 'table', text: `${e.name} — ${r.n}${name ? ' ' + name : ''}: ${text || ''}` }]);
+      const trs = out.parentElement.querySelectorAll('table.grid tbody tr');
+      trs.forEach((tr, i) => tr.classList.toggle('hit', e.entries.filter((x) => x.vk === 'def')[i] === r.row));
+    });
+    out.appendChild(b);
+    return out;
   }
 
   function guidance(g) {

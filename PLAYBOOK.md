@@ -27,8 +27,10 @@ TEMPLATE fixes the starting values. `system/teeth/sheet.js` is ~400 lines and re
 different character types from six different books without naming one of them.
 
 *TEETH needed:* the EXTENDS chain (a Hogman is a Hunter), "Starting Coin" seeding the Coin
-track, Injury Levels supplying the number of boxes per level, and the book's own `Roll` entity
-supplying the outcome ladder (so the module's wording wins over the core's).
+track, Injury Levels supplying the number of boxes per level, the book's own `Roll` entity
+supplying the outcome ladder (so the module's wording wins over the core's), and reconciling
+an actor's `Special Abilities` with a Playbook's `Special Ability List` by stem — the corpus is
+never edited to suit the tool.
 
 ## 2. Three layers that do not know each other's names
 

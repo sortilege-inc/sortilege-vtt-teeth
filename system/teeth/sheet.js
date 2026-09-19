@@ -32,7 +32,8 @@ window.TeethSheet = (function () {
   // ── the spec of a sheet, from the template's actor chain ──────────
   function actorChain(template) {
     const out = [];
-    let t = D.entity(template.typeHash);
+    // a TEMPLATE's chain starts at the actor it EXTENDS; an ACTOR used directly (the Outfit) is its own head
+    let t = template.form === 'ACTOR' ? template : D.entity(template.typeHash);
     while (t) {
       out.unshift(t);
       t = t.typeHash ? D.entity(t.typeHash) : null;
@@ -59,26 +60,58 @@ window.TeethSheet = (function () {
     return { axisField: axis ? axis.name : 'Name', axisType: axis && axis.ref ? axis.ref.name : null, field: num ? num.name : 'Rating', max: num && num.max != null ? num.max : 3 };
   }
 
+  function singular(name) {
+    return /ies$/.test(name) ? name.replace(/ies$/, 'y') : name.replace(/s$/, '');
+  }
+
+  // the template's CHOICES row for a list or pick, by name or its singular / " List"-less form
+  // ("Special Ability" PICK 1 governs the actor's "Special Abilities" and the Playbook's
+  // "Special Ability List")
+  function choiceFor(choices, name) {
+    const stem = name.replace(/ List$/, '');
+    return choices[name] || choices[stem] || choices[singular(name)] || choices[singular(stem)] || null;
+  }
+
   function spec(template) {
     const out = { header: [], tracks: [], counters: [], ratings: [], lists: [], texts: [], picks: [] };
     const choices = {};
     (template.choices || []).forEach((c) => {
       if (c.name) choices[c.name] = c;
     });
-    declared(template).forEach((p) => {
-      if (p.name === 'Name') return;
-      const tv = templateProp(template, p.name);
-      if (p.vk === 'scalar' && p.type === 'INTEGER') {
-        if (p.max != null) out.tracks.push({ name: p.name, min: p.min || 0, max: p.max, start: tv && tv.value != null ? tv.value : 0 });
-        else if (!(tv && tv.value != null && p.fixed)) out.counters.push({ name: p.name, min: p.min || 0, start: tv && tv.value != null ? tv.value : 0 });
+    // the actor chain's declarations first, then whatever the template carries that no actor
+    // declared (a Playbook's Special Ability List, Item List, Experience…)
+    const decls = declared(template);
+    const names = decls.map((d) => d.name);
+    (template.props || []).forEach((tp) => names.indexOf(tp.name) === -1 && names.push(tp.name));
+    // an actor's "Special Abilities" / "Items" and a Playbook's "Special Ability List" / "Item
+    // List" are one list: the declaration's name, the template's items
+    const stem = (n) => singular(n.replace(/ List$/, ''));
+    const alias = {};
+    names.forEach((n) => {
+      const d = decls.find((x) => x.name === n);
+      if (!d) return;
+      const twin = (template.props || []).find((tp) => tp.name !== n && stem(tp.name) === stem(n) && !decls.some((x) => x.name === tp.name));
+      if (twin) alias[n] = twin.name;
+    });
+    const taken = new Set(Object.values(alias));
+    names.forEach((name) => {
+      if (name === 'Name' || taken.has(name)) return;
+      const p = decls.find((d) => d.name === name) || null;
+      const tv = templateProp(template, alias[name] || name);
+      const shape = p || tv;           // the declaration when there is one, else the template value's own shape
+      if (!shape) return;
+      if (shape.vk === 'scalar' && (shape.type === 'INTEGER' || (p == null && typeof (tv && tv.value) === 'number'))) {
+        if (p && p.max != null) out.tracks.push({ name, min: p.min || 0, max: p.max, start: tv && tv.value != null ? tv.value : 0 });
+        else if (p && !(tv && tv.value != null && p.fixed)) out.counters.push({ name, min: p.min || 0, start: tv && tv.value != null ? tv.value : 0 });
+        else if (tv && tv.value != null) out.header.push({ name, value: tv.value });   // a template constant (Starting Action Points, Magic Picks)
         return;
       }
-      if (p.vk === 'scalar') {
-        if (tv && tv.value != null) out.header.push({ name: p.name, value: tv.value });
+      if (shape.vk === 'scalar') {
+        if (tv && tv.value != null) out.header.push({ name, value: tv.value });
         return;
       }
-      if (p.vk === 'list' && /Rating$/.test(p.of || '')) {
-        const rs = ratingSpec(p);
+      if (shape.vk === 'list' && /Rating$/.test(shape.of || '')) {
+        const rs = ratingSpec(shape);
         if (!rs) return;
         const start = {};
         ((tv && tv.items) || []).forEach((it) => {
@@ -88,36 +121,40 @@ window.TeethSheet = (function () {
           if (ax && n) start[(ax.ref && ax.ref.name) || ax.value] = n.value;
         });
         const axisEntities = rs.axisType ? D.byType(rs.axisType, books()) : [];
-        // keep the book's own order: the axis entities as printed, then any the template names alone
         const axes = axisEntities.map((a) => a.name);
         Object.keys(start).forEach((k) => axes.indexOf(k) === -1 && axes.push(k));
-        out.ratings.push({ name: p.name, axes, axisEntities, start, max: rs.max });
+        out.ratings.push({ name, axes, axisEntities, start, max: rs.max });
         return;
       }
-      if (p.vk === 'list' && p.of === 'STRING') {
-        out.texts.push({ name: p.name, start: ((tv && tv.items) || []).map((it) => it.value) });
+      if (shape.vk === 'list' && shape.of === 'STRING') {
+        out.texts.push({ name, start: ((tv && tv.items) || []).map((it) => it.value) });
         return;
       }
-      if (p.vk === 'list') {
-        const items = ((tv && tv.items) || []).filter((it) => it.vk === 'ref').map((it) => ({ hash: it.hash, name: it.name }));
-        const c = choices[p.name];
-        out.lists.push({ name: p.name, type: p.of, items: c && c.items.length ? c.items : items, pick: c ? c.pick : null, fixed: !c });
+      if (shape.vk === 'list') {
+        let items = ((tv && tv.items) || []).filter((it) => it.vk === 'ref').map((it) => ({ hash: it.hash, name: it.name }));
+        const c = choiceFor(choices, name);
+        // a shared sheet made straight from an ACTOR (the Outfit) lists nothing of its own: offer
+        // every entity of the list's type in the campaign's books (Boons, Purchases, Affiliations…)
+        if (!items.length && !c && template.form === 'ACTOR' && shape.of) items = D.byType(shape.of, books()).map((e) => ({ hash: e.id, name: e.name }));
+        if (!items.length && !c) return;                       // an actor list the template leaves empty (Mutations)
+        if (c) c.used = true;
+        out.lists.push({ name, type: shape.of, items: items.length ? items : c.items, pick: c ? c.pick : null, fixed: !c });
         return;
       }
-      if (p.vk === 'ref') {
-        const c = choices[p.name];
-        const typeName = p.ref && p.ref.name;
+      if (shape.vk === 'ref') {
+        const c = choiceFor(choices, name);
+        const typeName = shape.ref && shape.ref.name;
         const options = c && c.items.length ? c.items : (typeName ? D.byType(typeName, books()).map((e) => ({ hash: e.id, name: e.name })) : []);
-        if (tv && tv.ref && tv.ref.hash) out.header.push({ name: p.name, ref: tv.ref });
-        else out.picks.push({ name: p.name, type: typeName, options, pick: c ? c.pick || 1 : 1 });
+        if (c) c.used = true;
+        if (tv && tv.ref && tv.ref.hash) out.header.push({ name, ref: tv.ref });
+        else out.picks.push({ name, type: typeName, options, pick: c ? c.pick || 1 : 1 });
       }
     });
-    // choices the actor never declared (e.g. a Playbook's Discipline / Method picks) are picks too
+    // choices nothing above consumed (a Playbook's Discipline / Method) are picks of their own
     Object.keys(choices).forEach((name) => {
-      if (!out.lists.some((l) => l.name === name) && !out.picks.some((pk) => pk.name === name)) {
-        const c = choices[name];
-        out.picks.push({ name, type: null, options: c.items, pick: c.pick || 1 });
-      }
+      const c = choices[name];
+      if (!c.used && !out.lists.some((l) => l.name === name) && !out.picks.some((pk) => pk.name === name)) out.picks.push({ name, type: null, options: c.items, pick: c.pick || 1 });
+      delete c.used;
     });
     out.rubrics = (template.choices || []).filter((c) => c.rubric).map((c) => c.rubric);
     return out;
@@ -333,7 +370,7 @@ window.TeethSheet = (function () {
     (S().log || []).filter((x) => x.kind === 'roll' && x.memberId === m.id).slice(-5).reverse().forEach((x) => rollLog.appendChild(rollLine(x)));
     const header = el('header', { class: 'sheet-head' }, [
       el('h2', {}, [m.name]),
-      el('div', { class: 'meta' }, [E.link({ hash: t.id, name: t.name }), el('span', { class: 'muted' }, [t.type || ''])]),
+      el('div', { class: 'meta' }, [E.link({ hash: t.id, name: t.name }), el('span', { class: 'muted' }, [t.form === 'ACTOR' ? 'a shared sheet' : (t.type || '')])]),
       ...sp.header.map((h) => h.ref ? el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [h.name]), el('div', { class: 'prop-v' }, [E.link(h.ref)])])
         : typeof h.value === 'string' && h.value.length > 60 ? el('details', { class: 'sheet-text' }, [el('summary', {}, [h.name]), paragraphs(h.value, 'prose small')])
         : el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [h.name + ': ']), String(h.value)])),
@@ -346,7 +383,7 @@ window.TeethSheet = (function () {
       sp.picks.length ? el('section', {}, [el('h4', {}, ['Choices']), ...sp.picks.map((pk) => pickRow(m, pk))]) : null,
       ...sp.lists.map((l) => listRows(m, l)),
       ...sp.texts.map((tx) => textRows(m, tx)),
-      sp.rubrics.length ? el('div', { class: 'rubric' }, sp.rubrics.join(' · ')) : null,
+      sp.rubrics.length ? el('div', { class: 'rubric' }, [sp.rubrics.join(' · ')]) : null,
       opts.player ? null : el('section', { class: 'gm-notes' }, [
         el('h4', {}, ['GM notes ', el('span', { class: 'muted' }, ['(never sent to players)'])]),
         el('textarea', { rows: 3, oninput: debounce((ev) => State.commit('setPartyNotes', [m.id, ev.target.value]), 400) }, [m.notes || '']),
@@ -360,9 +397,13 @@ window.TeethSheet = (function () {
   }
 
   // The Inspector's view of a TEMPLATE: the entity as printed plus "Add to party".
+  function standalone(e) {
+    return e.form === 'ACTOR' && !D.all().some((x) => x.form === 'TEMPLATE' && x.typeHash === e.id);
+  }
+
   function render(e) {
-    if (e.form !== 'TEMPLATE') return null;
-    const add = button('Add to party as…', () => {
+    if (e.form !== 'TEMPLATE' && !standalone(e)) return null;
+    const add = button(e.form === 'ACTOR' ? 'Add to party as a shared sheet…' : 'Add to party as…', () => {
       const name = prompt('Character name', e.name);
       if (name == null) return;
       const m = newMember(e.id, name);
@@ -374,5 +415,5 @@ window.TeethSheet = (function () {
     return wrap;
   }
 
-  return { spec, newMember, member, live, render, doRoll, rollLine, rollEntity };
+  return { spec, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone };
 })();

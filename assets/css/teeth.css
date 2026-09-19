@@ -290,3 +290,13 @@ body.play { display: block; }
 .play-card .card.static .btn { margin-top: 0.4rem; }
 .code-input { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.2em; width: 9rem; }
 .session-error { color: var(--blood); }
+
+/* ── clocks and tables ──────────────────────────────────── */
+.clock-row { margin: 0.6rem 0; padding-bottom: 0.4rem; border-bottom: 1px dotted var(--rule); }
+.clock-row.gm-only .track-name::after { content: " · GM only"; color: var(--ink-3); font-size: 0.75rem; }
+.boxes.clock .box { width: 22px; height: 22px; border-radius: 50%; }
+.clock-strip { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.6rem; }
+.clock-strip .clock-row { border: 0; margin: 0; }
+.clock-strip .box { display: inline-block; cursor: default; }
+.table-roll { margin: 0.3rem 0; }
+table.grid tr.hit td, table.grid tr.hit th { background: #f3e3c0; }
