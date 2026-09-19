@@ -53,9 +53,24 @@
       b.disabled = !!claimed;
       return el('div', { class: 'card static' }, [el('div', { class: 'card-name' }, [m.name]), el('div', { class: 'card-sub' }, [Sys.memberSubtitle(m)]), b]);
     });
+    // bring your own: a character file from the site's creator goes into the party and is claimed
+    const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
+    const msg = el('div', { class: 'muted' });
+    file.addEventListener('change', () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      f.text().then((text) => {
+        const m = Sys.readCharacter(JSON.parse(text), f.name);
+        State.commit('addPartyMember', [m]);
+        Session.claim(m.id);
+        msg.textContent = `${m.name} is at the table.`;
+      }).catch((e) => (msg.textContent = e.message)).finally(() => (file.value = ''));
+    });
     return el('div', { class: 'play-card' }, [
       el('h1', {}, ['Who are you?']),
       party.length ? el('div', { class: 'cards' }, cards) : el('p', { class: 'muted' }, [s.connected ? 'The GM hasn’t added any characters yet.' : 'Connecting…']),
+      el('div', { class: 'chiprow' }, [button('Load my character file…', () => file.click(), 'ghost'), el('span', { class: 'muted' }, ['made on the site’s character creator']), file]),
+      msg,
     ]);
   }
 

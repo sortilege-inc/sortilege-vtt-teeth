@@ -73,7 +73,9 @@ follows whichever map the GM's table is showing. Map images live in `assets/maps
 ## Sessions — players on their own devices
 
 **Start session** in the sidebar creates a room and shows a code and a join link
-(`gm/play.html?s=CODE`). A player opens it on their phone, claims one of the party's characters,
+(`gm/play.html?s=CODE`). A player opens it on their phone, claims one of the party's characters
+— or **Load my character file…** brings the one they made on the site's creator: it joins the
+party (and so the campaign pack) and is theirs at once —
 and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes; they
 can open the table in player view and move their own token. Everything they do shows up live
 on the GM's page and table; everything the GM does to their character shows up live on theirs.

@@ -125,10 +125,13 @@ window.VttSystem = (function () {
   function liveSheet(m, opts) {
     return window.TeethSheet.live(m, opts);
   }
+  function readCharacter(obj, fileName) {
+    return window.TeethSheet.readCharacter(obj, fileName);
+  }
   function memberSubtitle(m) {
     const t = D.entity(m.templateId);
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, memberSubtitle, MODULE_MAPS };
+  return { scenes, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, memberSubtitle, MODULE_MAPS };
 })();

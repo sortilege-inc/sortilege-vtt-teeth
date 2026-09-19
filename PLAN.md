@@ -167,6 +167,16 @@ Campaign panel showed *Player characters · saved in the pack* with a multi-file
 new campaign restored the party with the member (then removed, and the test campaign deleted).
 The creator's last step reads **Download as JSON** and names the file.
 
+**Players load their own (2026-09-19, owner's ask):** decision 31. Proof over the deployed
+Worker (version 9de18ac9), GM on localhost, player on 127.0.0.1 (room HN6RU): the player's claim
+screen showed *Load my character file…*; a character file read through the loader's path was
+committed and claimed — the player went straight to Perrin Vole's sheet, no error; the GM's
+party gained "Perrin Vole · Outrider · loaded from perrin-vole.teeth-character.json" with empty
+GM notes, the room's claims showed it, and the Campaign panel listed it. Seven Node assertions on
+the rule (file character with or without a claim: yes; a plain member, a live patch or a log line
+from an unclaimed player: no). Clue fix: ticking "1. Keys to locked places." wrote the key
+`<scene>::1. Keys to locked places.` and the box was still ticked after a reload.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -197,6 +207,7 @@ The creator's last step reads **Download as JSON** and names the file.
 | 28 | A made character leaves the site as a **character file** (`kind: sortilege-vtt-character`, v1, the party-member record) and enters a campaign through **Party › Add from file…**, which re-ids it and drops GM notes; the draft itself lives under a site key in that browser, never in a campaign. The answers to "what they want" become the player's notes | The site still writes nothing to a campaign; the GM's table stays the only writer. A file also survives a browser. |
 | 29 | The site answers at **teeth.sortilege.online** (the owner added the CNAME through Pages, 2026-09-19); the Worker's `ALLOWED_ORIGIN` became a comma-separated list — the custom domain and the github.io fallback — so a session started from either origin is admitted | Found as a rejected push (the CNAME commit); without the change, Start session on the new domain would be refused. |
 | 30 | Custom player characters enter a campaign through the Campaign panel's **Player characters** section (or Party › Add from file…): a loaded character is a party member with a `source` (file name, when exported, when loaded), so it is in the pack's `party` and survives Save / Restore; it can be downloaded again as a character file from the same list. The creator's last step names the download plainly: **Download as JSON** | Owner's ask 2026-09-19. The party is already what the pack carries; the section makes the loading and its consequence visible rather than adding a second store. |
+| 31 | A player may bring their own character: the claim screen's **Load my character file…** commits `addPartyMember` and claims it. The room admits that op from a player — even one who has not claimed yet (`opts.unclaimed`) — only for a member carrying `source.kind === 'file'` (a character file); every other op still needs a claimed character, and the GM's notes never travel. Found and fixed alongside: the op wrote clue keys with a NUL separator while the Scene panel read `scene::clue`, so a revealed clue did not survive a redraw; both now use `::` | Owner's ask 2026-09-19. The rule is the narrowest that lets a file in. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |
