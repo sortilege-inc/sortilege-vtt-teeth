@@ -2,15 +2,20 @@
 // its own window (vtt.html). System-agnostic: a token is { id, label, kind, owner,
 // x, y, size, hidden, color }; what a token stands for (a party member, a cast
 // member, a marker) is the system's business and arrives through the token itself.
-// Map state lives per scene in the shared state (State.state.maps) and every change
-// goes through ops, so the GM page, the table and the player view all agree.
+// Map state lives per map in the shared state (State.state.maps): a map is one the
+// system ships for a scene (a floor of a building, the grounds — a scene may have
+// several) or, for a scene with none, the scene itself as a blank grid. Which map
+// the table is showing is shared too (State.state.table.map), so the player view
+// follows the GM's floor. Every change goes through ops, so the GM page, the table
+// and the player view all agree.
 //
 // Two views of the same page:
 //   vtt.html               GM view: toolbar, drag, right-click menu, fog at half
 //                          opacity, hidden tokens dimmed
 //   vtt.html?view=player   player view: no controls, fog opaque, hidden and fogged
 //                          tokens not drawn; a player may drag their own tokens
-// ?scene=<id> pins a scene; without it the window follows the GM's current scene.
+// ?map=<id> pins a map (?scene=<id> its first map); without it the window follows
+// the GM's table — the map they last showed, else their current scene's first map.
 //
 // Units: map state is in grid cells (floats allowed); the SVG user space is image
 // pixels; grid.size is the cell in pixels, grid.ox/oy the offset of the first line —
@@ -31,9 +36,11 @@
   const toolbar = document.getElementById('vtt-toolbar');
   const hint = document.getElementById('vtt-hint');
 
-  let follow = !params.get('scene');
-  let sceneId = params.get('scene') || null;
+  let follow = !(params.get('map') || params.get('scene'));
+  let mapId = null;
+  let sceneId = null;            // the scene the current map belongs to
   let map = null;
+  let legendOpen = false;        // this window's, never shared
   let tool = 'select';           // select | ping | circle | line | square | reveal
   let selectedId = null;
   let selectedEffect = null;
@@ -56,18 +63,27 @@
     return Sys.currentSceneId();
   }
 
-  function hasMap(id) {
+  function mapScene(id) {
+    const d = Sys.mapDef(id);
+    return d ? d.sceneId : id;             // a scene with no shipped map is its own blank map
+  }
+
+  function hasMap(id) {                    // does this scene have anything to show?
+    if (Sys.defaultMapId(id) !== id) return true;
     const m = (State.state.maps || {})[id];
-    if (m && m.image) return true;
-    return !!Sys.defaultMap(id);
+    return !!(m && m.image);
   }
 
   let followNote = '';
-  function followedScene() {
-    const h = gmScene();
-    if (!h || hasMap(h)) {
+  function defaultFor(h) {
+    if (!h) {
       followNote = '';
-      return h || (scenes()[0] || {}).id || null;
+      const first = scenes()[0];
+      return first ? Sys.defaultMapId(first.id) : null;
+    }
+    if (hasMap(h)) {
+      followNote = '';
+      return Sys.defaultMapId(h);
     }
     const mapped = scenes().find((s) => hasMap(s.id));
     if (!mapped) {
@@ -76,11 +92,29 @@
     }
     const cur = scenes().find((s) => s.id === h);
     followNote = `${cur ? cur.name : 'The current scene'} has no map yet — showing ${mapped.name}.`;
-    return mapped.id;
+    return Sys.defaultMapId(mapped.id);
+  }
+
+  // What a following window shows: the map the GM's table last showed, if it belongs
+  // to the GM's current scene (players take it as it is); else that scene's first map.
+  function followedMap() {
+    const t = State.state.table || {};
+    const h = gmScene();
+    if (t.map && (PLAYER || !h || mapScene(t.map) === h)) {
+      followNote = '';
+      return t.map;
+    }
+    return defaultFor(h);
   }
 
   function scene() {
     return scenes().find((s) => s.id === sceneId) || null;
+  }
+
+  function mapName() {
+    const sc = scene();
+    const d = Sys.mapDef(mapId);
+    return [sc && sc.name, d && d.name].filter(Boolean).join(' · ') || 'Table';
   }
 
   function blankMap() {
@@ -88,17 +122,17 @@
   }
 
   function loadMap() {
-    let m = (State.state.maps || {})[sceneId];
+    let m = (State.state.maps || {})[mapId];
     if (!m) {
       m = blankMap();
-      const d = Sys.defaultMap(sceneId);
+      const d = Sys.mapDef(mapId);
       if (d) {
         m.image = d.image;
         m.w = d.w;
         m.h = d.h;
         Object.assign(m.grid, d.grid || {});
       }
-      if (!PLAYER && sceneId) State.commit('setMapState', [sceneId, m]);
+      if (!PLAYER && mapId) State.commit('setMapState', [mapId, m]);
     }
     m.tokens = m.tokens || [];
     m.effects = m.effects || [];
@@ -107,7 +141,7 @@
   }
 
   function persist() {
-    if (!PLAYER && sceneId) State.commit('setMapState', [sceneId, map]);
+    if (!PLAYER && mapId) State.commit('setMapState', [mapId, map]);
   }
 
   // ── geometry ───────────────────────────────────────────────────────
@@ -279,20 +313,44 @@
   }
 
   function refresh() {
+    const next = follow ? followedMap() : mapId;
+    if (next && next !== mapId) {
+      switchMap(next, true);
+      return;
+    }
     loadMap();
     renderAll();
   }
 
-  function switchScene(id, refit) {
-    sceneId = id;
+  function switchMap(id, refit) {
+    mapId = id;
+    sceneId = mapScene(id);
     selectedId = null;
     selectedEffect = null;
     loadMap();
     renderAll();
     if (refit) fit();
-    const sc = scene();
-    document.title = (window.VttConfig.title || 'Table') + ' — ' + (sc ? sc.name : 'Table');
+    document.title = (window.VttConfig.title || 'Table') + ' — ' + mapName();
+    // the table's map is shared: whatever the GM shows, the player view follows
+    if (!PLAYER && mapId && (State.state.table || {}).map !== mapId) State.commit('setTableMap', [mapId]);
     buildToolbar();
+    renderLegend();
+  }
+
+  // ── the legend (GM only; the map's key, verbatim from the corpus) ──
+  let legendEl = null;
+  function renderLegend() {
+    if (legendEl) legendEl.remove();
+    legendEl = null;
+    if (PLAYER || !legendOpen) return;
+    const lg = Sys.legend(mapId);
+    if (!lg) return;
+    legendEl = el('div', { class: 'vtt-legend' }, [
+      el('h4', {}, [lg.heading]),
+      el('div', { class: 'muted' }, [lg.title]),
+      el('div', { class: 'lines' }, lg.lines.map((line) => el('div', {}, [line]))),
+    ]);
+    stage.appendChild(legendEl);
   }
 
   // ── pings ──────────────────────────────────────────────────────────
@@ -342,7 +400,7 @@
     }
     if (PLAYER && tool === 'ping') {
       const c0 = toCell(p.x, p.y);
-      Bus.emit('ping', { sceneId, x: c0.x, y: c0.y });
+      Bus.emit('ping', { mapId, x: c0.x, y: c0.y });
       return;
     }
     const fx = e.target.closest && e.target.closest('.effect');
@@ -398,7 +456,7 @@
       if (drag.moved) {
         drag.token.x = snap(drag.token.x);
         drag.token.y = snap(drag.token.y);
-        State.commit('setTokenPosition', [sceneId, drag.token.id, drag.token.x, drag.token.y]);   // the op a player may send
+        State.commit('setTokenPosition', [mapId, drag.token.id, drag.token.x, drag.token.y]);   // the op a player may send
       } else {
         Sys.selectToken(drag.token);
       }
@@ -407,7 +465,7 @@
       layers.preview.innerHTML = '';
       const moved = Math.hypot(drag.cur.x - drag.start.x, drag.cur.y - drag.start.y) > 0.15;
       if (tool === 'ping') {
-        Bus.emit('ping', { sceneId, x: drag.start.x, y: drag.start.y });
+        Bus.emit('ping', { mapId, x: drag.start.x, y: drag.start.y });
       } else if (tool === 'reveal') {
         if (moved) {
           map.fog.revealed.push(normRect(drag.start, drag.cur));
@@ -565,23 +623,30 @@
   function buildToolbar() {
     toolbar.innerHTML = '';
     if (PLAYER) {
-      toolbar.appendChild(el('div', { class: 'group' }, [el('b', {}, [scene() ? scene().name : 'Table']), el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), toolButton('ping', 'Ping')]));
+      toolbar.appendChild(el('div', { class: 'group' }, [el('b', {}, [mapName()]), el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), toolButton('ping', 'Ping')]));
       return;
     }
-    const list = scenes();
-    const sceneSel = el('select', { class: 'vtt-select' });
-    list.forEach((sc, i) => sceneSel.appendChild(el('option', { value: sc.id, selected: sc.id === sceneId || null }, [`${i + 1}. ${sc.name}`])));
+    // one entry per map, in scene order: a scene's floors, or the scene itself when it has no map
+    const mapSel = el('select', { class: 'vtt-select' });
+    const shipped = Sys.maps();
+    scenes().forEach((sc, i) => {
+      const ms = shipped.filter((m) => m.sceneId === sc.id);
+      if (!ms.length) mapSel.appendChild(el('option', { value: sc.id, selected: sc.id === mapId || null }, [`${i + 1}. ${sc.name}`]));
+      ms.forEach((m) => mapSel.appendChild(el('option', { value: m.id, selected: m.id === mapId || null }, [`${i + 1}. ${sc.name} · ${m.name}`])));
+    });
     const followBox = el('input', { type: 'checkbox', checked: follow || null });
-    sceneSel.addEventListener('change', () => {
-      follow = false;
-      followBox.checked = false;
-      switchScene(sceneSel.value, true);
+    mapSel.addEventListener('change', () => {
+      if (follow && mapScene(mapSel.value) !== mapScene(followedMap())) {   // another scene's map: pinned from here
+        follow = false;
+        followBox.checked = false;
+      }
+      switchMap(mapSel.value, true);
     });
     followBox.addEventListener('change', () => {
       follow = followBox.checked;
-      if (follow) switchScene(followedScene(), true);
+      if (follow) switchMap(followedMap(), true);
     });
-    toolbar.appendChild(el('div', { class: 'group' }, [sceneSel, el('label', {}, [followBox, 'follow GM'])]));
+    toolbar.appendChild(el('div', { class: 'group' }, [mapSel, el('label', {}, [followBox, 'follow GM'])]));
 
     const img = el('input', { type: 'text', class: 'vtt-url', placeholder: 'map image (assets/maps/…)', value: map.image || '' });
     const setImg = el('button', { class: 'btn ghost' }, ['Set map']);
@@ -657,8 +722,15 @@
       resetFog,
     ]));
 
-    const playerBtn = el('button', { class: 'btn', onclick: () => window.open(location.pathname + '?view=player' + (follow ? '' : '&scene=' + encodeURIComponent(sceneId)), (window.VttConfig.channel || 'vtt') + '-player') }, ['Open player view']);
-    toolbar.appendChild(el('div', { class: 'group last' }, [el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), playerBtn]));
+    const playerBtn = el('button', { class: 'btn', onclick: () => window.open(location.pathname + '?view=player' + (follow ? '' : '&map=' + encodeURIComponent(mapId)), (window.VttConfig.channel || 'vtt') + '-player') }, ['Open player view']);
+    const legendBtn = el('button', { class: 'btn ghost' + (legendOpen ? ' active' : ''), title: 'The map’s key, from the book — for you, not the players' }, ['Legend']);
+    legendBtn.disabled = !Sys.legend(mapId);
+    legendBtn.addEventListener('click', () => {
+      legendOpen = !legendOpen;
+      buildToolbar();
+      renderLegend();
+    });
+    toolbar.appendChild(el('div', { class: 'group last' }, [legendBtn, el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), playerBtn]));
   }
 
   function syncHint() {
@@ -678,19 +750,19 @@
   });
   Bus.on('state:remote', () => refresh());
   Bus.on('scene:changed', (p, meta) => {
-    if (!(meta && meta.remote && follow)) return;
-    const next = followedScene();
-    if (next !== sceneId) switchScene(next, true);
-    else syncHint();
+    if (!(meta && meta.remote)) return;
+    refresh();
+    syncHint();
   });
   Bus.on('ping', (p) => {
-    if (p && p.sceneId === sceneId) showPing(p.x, p.y);
+    if (p && p.mapId === mapId) showPing(p.x, p.y);
   });
 
   // ── boot ───────────────────────────────────────────────────────────
   buildLayers();
-  switchScene(sceneId || followedScene(), true);
+  const pinned = params.get('map') || (params.get('scene') ? Sys.defaultMapId(params.get('scene')) : null);
+  switchMap(pinned || followedMap(), true);
   window.addEventListener('resize', applyView);
 
-  window.VttTable = { refresh, fit, map: () => map, scene: () => sceneId, tool: () => tool, addToken: addTokenAt };
+  window.VttTable = { refresh, fit, map: () => map, mapId: () => mapId, scene: () => sceneId, tool: () => tool, addToken: addTokenAt, legend: () => legendOpen };
 })();

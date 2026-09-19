@@ -266,6 +266,11 @@ body.player .token { cursor: default; }
 .vtt-menu { position: absolute; background: var(--paper); border: 1px solid var(--ink); padding: 0.6rem 0.8rem; min-width: 240px; z-index: 10; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); font-size: 0.85rem; }
 .vtt-menu h4 { margin: 0 0 0.3rem; border: 0; }
 .vtt-menu .row { display: flex; gap: 0.3rem; align-items: center; margin: 0.3rem 0; flex-wrap: wrap; }
+.vtt-legend { position: absolute; right: 0.7rem; top: 0.7rem; background: var(--paper); color: var(--ink); border: 1px solid var(--ink); padding: 0.6rem 0.9rem 0.7rem; min-width: 220px; max-width: 320px; max-height: calc(100% - 1.4rem); overflow: auto; z-index: 9; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); font-size: 0.85rem; }
+.vtt-legend h4 { margin: 0; border: 0; }
+.vtt-legend .muted { font-size: 0.75rem; margin-bottom: 0.35rem; }
+.vtt-legend .lines div { padding: 0.08rem 0; }
+body.player .vtt-legend { display: none; }
 .btn.danger { background: var(--blood); border-color: var(--blood); }
 .window-controls { display: flex; flex-direction: column; gap: 0.35rem; margin: 1rem 0 0; }
 .window-controls .btn { width: 100%; font-family: var(--sc); letter-spacing: 0.05em; }

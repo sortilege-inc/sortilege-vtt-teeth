@@ -1,22 +1,32 @@
 // system/teeth/table.js — what the TEETH system tells the table (engine/vtt.js):
-// which scenes are in play, which map a scene ships with, what can be a token and
+// which scenes are in play, which maps a scene ships with (and their legends), what can be a token and
 // what a token's state reads as. The engine never asks the corpus directly.
 window.VttSystem = (function () {
   const D = window.TeethData;
   const State = window.VttState;
   const S = () => State.state;
 
-  // Maps the owner has put in the repo, by module and scene name (assets/maps/…).
-  // A scene not listed here starts as a bare grid; the GM can set any image.
+  // Maps the owner has put in the repo (assets/maps/…), by module. A map belongs to
+  // a scene (by the scene's name in the ARC); a scene may have several — the
+  // floors of a building — and the first listed is the one the table opens on. A
+  // scene with no map here starts as a bare grid the GM can set any image on.
+  // `legend` names the corpus entity (and the property on it) whose verbatim lines
+  // are the map's key; the GM pulls it up from the toolbar, it is never drawn on
+  // the map and never reaches players.
+  const FLOORPLAN = '#tq0SUlmYKEpVhob71TNsDu2';   // "A Floorplan of Buckleridge Manor" (Blood Cotillion)
+  const GRID = { size: 80, ox: 0, oy: 0 };
   const MODULE_MAPS = {
-    cotillion: {
-      'The Manor Itself': { image: 'assets/maps/cotillion/buckleridge-manor.webp', w: 2400, h: 3055, grid: { size: 80, ox: 0, oy: 0 } },
-      'The Grounds and Gardens': { image: 'assets/maps/cotillion/grounds-colour.webp', w: 2400, h: 3055, grid: { size: 80, ox: 0, oy: 0 } },
-    },
+    cotillion: [
+      // the middle floor first: guests arrive there (the entrance hall, the ballroom)
+      { id: 'manor-middle', name: 'Middle Floor', scene: 'The Manor Itself', image: 'assets/maps/cotillion/manor-middle.webp', w: 2160, h: 1760, grid: GRID, legend: { entity: FLOORPLAN, prop: 'Middle Floor' } },
+      { id: 'manor-lower', name: 'Lower Floor', scene: 'The Manor Itself', image: 'assets/maps/cotillion/manor-lower.webp', w: 2160, h: 1760, grid: GRID, legend: { entity: FLOORPLAN, prop: 'Lower Floor' } },
+      { id: 'manor-upper', name: 'Upper Floor', scene: 'The Manor Itself', image: 'assets/maps/cotillion/manor-upper.webp', w: 2160, h: 1440, grid: GRID, legend: { entity: FLOORPLAN, prop: 'Upper Floor' } },
+      { id: 'manor-roof', name: 'Roof & Attic', scene: 'The Manor Itself', image: 'assets/maps/cotillion/manor-roof.webp', w: 2160, h: 1440, grid: GRID, legend: { entity: FLOORPLAN, prop: 'Roof & Attic' } },
+      { id: 'grounds', name: 'The grounds', scene: 'The Grounds and Gardens', image: 'assets/maps/cotillion/grounds-colour.webp', w: 2400, h: 3055, grid: GRID },
+    ],
   };
-  const MAP_ASSETS = [
-    { label: 'Blood Cotillion — Buckleridge Manor (floor plans)', image: 'assets/maps/cotillion/buckleridge-manor.webp' },
-    { label: 'Blood Cotillion — the grounds (colour)', image: 'assets/maps/cotillion/grounds-colour.webp' },
+  // Other images in the repo the GM may put on any map ("maps in the repo…").
+  const EXTRA_ASSETS = [
     { label: 'Blood Cotillion — the grounds (line)', image: 'assets/maps/cotillion/grounds.webp' },
   ];
 
@@ -36,17 +46,42 @@ window.VttSystem = (function () {
     return (pages.find((p) => p.scene.id === cur) || pages[0] || { scene: {} }).scene.id || null;
   }
 
-  function defaultMap(sceneId) {
-    for (const moduleId of modules()) {
-      const sc = D.scene(moduleId, sceneId);
-      const d = sc && MODULE_MAPS[moduleId] && MODULE_MAPS[moduleId][sc.name];
-      if (d) return d;
-    }
-    return null;
+  // The shipped maps in play, in scene order: [{ id, name, sceneId, moduleId, image, w, h, grid, legend }]
+  function maps() {
+    const out = [];
+    modules().forEach((moduleId) => {
+      const pages = D.pages(moduleId);
+      (MODULE_MAPS[moduleId] || []).forEach((d) => {
+        const page = pages.find((p) => p.scene.name === d.scene);
+        if (page) out.push(Object.assign({}, d, { sceneId: page.scene.id, moduleId }));
+      });
+    });
+    return out;
+  }
+
+  function mapDef(mapId) {
+    return maps().find((m) => m.id === mapId) || null;
+  }
+
+  // The map a scene opens on: its first shipped map, else the scene itself as a blank map.
+  function defaultMapId(sceneId) {
+    const first = maps().find((m) => m.sceneId === sceneId);
+    return first ? first.id : sceneId;
+  }
+
+  // The map's key, verbatim from the corpus: { title, heading, lines } or null.
+  function legend(mapId) {
+    const d = mapDef(mapId);
+    if (!d || !d.legend) return null;
+    const e = D.entity(d.legend.entity);
+    const prop = e && (e.props || []).find((p) => p.name === d.legend.prop);
+    if (!prop) return null;
+    const lines = (prop.items || []).map((it) => it.value).filter((v) => typeof v === 'string');
+    return lines.length ? { title: e.name, heading: prop.name, lines } : null;
   }
 
   function mapAssets() {
-    return MAP_ASSETS;
+    return maps().map((m) => ({ label: `${(D.arc(m.moduleId) || {}).name || m.moduleId} — ${m.scene} · ${m.name}`, image: m.image })).concat(EXTRA_ASSETS);
   }
 
   // Tokens: the party (owned by the member, so a player may move their own) and the
@@ -95,5 +130,5 @@ window.VttSystem = (function () {
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, currentSceneId, defaultMap, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, memberSubtitle, MODULE_MAPS };
+  return { scenes, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, memberSubtitle, MODULE_MAPS };
 })();

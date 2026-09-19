@@ -47,8 +47,16 @@ table beside the ops; the server filters what a player may *see* with the same m
 (`playerView`, `forPlayers`). The module is UMD so the Worker imports the very file the
 browser loads — one copy of the rules, and a Node one-liner tests them without a browser.
 
+Between windows on one machine the change itself travels (the op, or the whole document on a
+restore), never a "re-read storage" hint: a BroadcastChannel message can arrive before the
+localStorage write is visible to the sibling, and a stale re-read gets saved back over the
+change. Applying the op is deterministic and needs no read.
+
 *TEETH needed:* nothing of its own yet — the engine's ops (party live state, notes, clues,
-maps, clocks, the log) covered a whole one-shot. A system registers extra ops with the same
+maps, the table's map, clocks, the log) covered a whole one-shot. Maps are keyed by a map id, not
+a scene: a building is several floors, each its own map with its own tokens and fog, and the
+system's `MODULE_MAPS` lists them per scene with, where the book has one, the corpus entity that
+is the map's key — shown to the GM verbatim, never drawn on the map, never sent to players. A system registers extra ops with the same
 `register(name, fn, playerRule, forPlayers)` call.
 
 ## 4. A campaign is an instance, not part of the repo

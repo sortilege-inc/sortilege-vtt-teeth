@@ -8,7 +8,8 @@
 // without touching panels.
 //
 // Event catalogue (payload shapes are the contract — keep them stable):
-//   state:changed   { at }                      state.js saved; other windows reload first
+//   state:changed   { at, campaign, op | doc }   state.js saved; other windows apply the op
+//                                               (or take the doc) before their handlers run
 //   state:remote    { name, args }              an op applied from the session socket
 //   op              { name, args, at }          an op committed in this window
 //   scene:changed   { moduleId, sceneId }

@@ -127,6 +127,16 @@ not have" as the worked example of adding a system.
 
 One commit per milestone, pushed; each verified in the browser by the main session.
 
+**After M7 (2026-09-19, owner's ask):** the Manor split into four floor maps with a GM-only legend
+(decisions 21–23). Proof: GM table opened on *The Manor Itself · Middle Floor* (2160×1760) with
+the map list showing the four floors and the grounds; **Legend** showed the 16 Middle Floor lines
+from the corpus and, after switching to *Roof & Attic*, the 4 roof lines; the player view showed
+the roof with only Fit/Ping and no legend element; switching floors on the GM table moved the
+player window (BroadcastChannel); changing scene on the GM page (Manor ↔ Grounds) moved both the
+table and the player view, the op arriving while localStorage still read the old value
+(instrumented log). Worker redeployed with the new op (version 54e6a879); 10 Node assertions on
+`setTableMap` / map-id ops pass.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -148,6 +158,9 @@ One commit per milestone, pushed; each verified in the browser by the main sessi
 | 18 | Any table whose entries carry a `Roll` field gets "Roll on this table" (dN from the highest entry, ranges honoured), the hit highlighted and logged | Every roll table in every book, one control. |
 | 19 | Deployed as Wyldwolf is: GitHub Pages from the repo root (the repo is public; the org's free plan allows Pages only there) and one Worker; `ALLOWED_ORIGIN` is the Pages origin, localhost allowed for `wrangler dev` | Owner's Q1/Q2. |
 | 20 | The first campaign pack is a sibling folder with its own git history and no remote — a starter pack, not the test data from this build | Goal 3: the instance is the owner's; a remote is their call. |
+| 21 | Maps are first-class, keyed by a map id, and a scene may ship several (`MODULE_MAPS.<module>` is a list; a scene with none is its own blank map). Buckleridge Manor is four floors cut from the flat plan (2160 px wide, the legend column cropped away), the middle floor first because guests arrive there; the combined plan is gone. Which map the table shows is shared state (`table.map`, op `setTableMap`, GM only), so the player view follows the GM's floor | Owner's ask 2026-09-19: "split it into the four maps instead". Tokens and fog then belong to a floor, which is what a floor plan needs. |
+| 22 | A map's legend is the corpus entity's verbatim lines (`A Floorplan of Buckleridge Manor`, one list per floor — checked against the book's p. 10, which the DSL follows; the flat JPG's own legend wording differs slightly and is not used). The GM pulls it up from the table's toolbar as an HTML panel over the stage; it is never drawn into the SVG, never built in the player view, never shared. The Scene panel's text already carries the same lines, so no second copy was added there | Owner's ask: a legend the GM can pull up, not displayed on the map. Verbatim-rules rule. |
+| 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |
 | 12 | The Blood Cotillion map downloads in the owner's `~/Downloads/TEETH/Blood Cotillion` were converted to 2400 px WebP under `assets/maps/cotillion/` (owner's Q2: art lives in this repo) and declared per scene in `system/teeth/table.js`; grid at 80 px until the GM calibrates | The table needed a map to be proven on; the originals (5500 × 7000 JPG, up to 27 MB) stay out. |

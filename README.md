@@ -41,11 +41,15 @@ Everything you tick or type is saved in this browser as you go.
 
 **Open table** puts the current scene's map in its own window (`vtt.html`): grid calibration,
 tokens for the party and the cast (add them from the toolbar; drag to move; right-click to hide,
-resize, rename), pings, circle / line / square effects, fog with reveal rectangles. It follows the
-GM's scene unless pinned. **Open player view** (`vtt.html?view=player`) is the same map with no
-controls, fog opaque and hidden tokens absent — for the TV, or for a player's device once
-sessions exist (M5). Map images live in `assets/maps/`; `system/teeth/table.js` says which scene
-ships with which.
+resize, rename), pings, circle / line / square effects, fog with reveal rectangles. A scene may
+ship several maps — Buckleridge Manor is four floors, one map each, the middle floor first — and
+the toolbar's map list switches between them; tokens and fog belong to the floor. It follows the
+GM's scene unless pinned. **Legend** pulls up the map's key, verbatim from the book (the
+Floorplan's numbered rooms), as a panel for the GM only: it is not drawn on the map and never
+reaches players. **Open player view** (`vtt.html?view=player`) is the same map with no controls,
+fog opaque and hidden tokens absent — for the TV, or for a player's device in a session; it
+follows whichever map the GM's table is showing. Map images live in `assets/maps/`;
+`system/teeth/table.js` says which scene ships with which maps and where each legend comes from.
 
 ## Sessions — players on their own devices
 
@@ -96,7 +100,7 @@ build/          the generator and its gate
 data/           GENERATED — window.TEETH.books / .entities / .index
 engine/         system-agnostic: bus, ops, state, session, panels, the shell, the table, the player's page
 system/teeth/   the TEETH module: sheets, tracks, clocks, the d6 pool roller, TEETH ops
-assets/maps/    the GM's maps (web-sized); assets/art/ portraits and handouts
+assets/maps/    the GM's maps (web-sized; the Manor's four floors cut from the flat plan); assets/art/ portraits and handouts
 worker/         the Cloudflare Worker: the SessionRoom Durable Object (deploy separately)
 docs/           notes; PLAN.md is the decision log
 ```

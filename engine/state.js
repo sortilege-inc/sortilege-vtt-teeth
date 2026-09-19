@@ -9,7 +9,8 @@
 //   progress  { [moduleId]: { [sceneId]: { done, notes } } }             notes are GM-only
 //   clues     { [moduleId]: { "sceneId::clueName": revealed } }
 //   party     [ { id, templateId, name, live:{…}, notes, playerNotes } ]
-//   maps      { [sceneId]: { image, w, h, grid, fog, tokens, effects } }
+//   maps      { [mapId]: { image, w, h, grid, fog, tokens, effects } }   a shipped map's id, or a scene id
+//   table     { map: mapId }                                             what the table is showing
 //   clocks    [ { id, name, segments, filled, sceneId, visible } ]
 //   log       [ { at, kind, text, memberId } ]
 //   ui        { … }   per-browser only, never shared, never exported
@@ -31,6 +32,7 @@ window.VttState = (function () {
       clues: {},
       party: [],
       maps: {},
+      table: {},
       clocks: [],
       log: [],
       ui: {},
@@ -86,14 +88,26 @@ window.VttState = (function () {
     return defaults(cid);
   }
 
-  function save() {
+  // Every save tells the other windows what changed — the op itself, or the whole
+  // document — never just "re-read storage": a BroadcastChannel message can reach a
+  // sibling window before the localStorage write is visible there, and a stale
+  // re-read would be written back over the change on that window's next save.
+  function save(change) {
     try {
       localStorage.setItem(key(id), JSON.stringify(state));
     } catch (e) {
       /* private window */
     }
     register(state.campaign);
-    if (Bus) Bus.emit('state:changed', { at: Date.now(), campaign: id });
+    if (Bus) Bus.emit('state:changed', Object.assign({ at: Date.now(), campaign: id }, change || { doc: snapshot() }));
+  }
+
+  function snapshot() {
+    const out = {};
+    Object.keys(state).forEach((k) => {
+      if (k !== 'ui') out[k] = state[k];
+    });
+    return out;
   }
 
   function register(campaign) {
@@ -117,20 +131,32 @@ window.VttState = (function () {
 
   if (Bus) {
     Bus.on('state:changed', (payload, meta) => {
-      if (meta && meta.remote && (!payload || payload.campaign === id)) reload();
+      if (!(meta && meta.remote) || !payload || payload.campaign !== id) return;
+      if (payload.op) {
+        try {
+          Ops.apply(state, payload.op.name, payload.op.args);   // deterministic: same op, same result
+        } catch (e) {
+          reload();
+        }
+      } else if (payload.doc) {
+        Object.keys(state).forEach((k) => {
+          if (k !== 'ui') delete state[k];
+        });
+        Object.assign(state, payload.doc);
+      } else reload();
     });
   }
 
   // ── ops ────────────────────────────────────────────────────────────
   function commit(name, args) {
     Ops.apply(state, name, args);
-    save();
+    save({ op: { name, args } });
     if (Bus) Bus.emit('op', { name, args, at: Date.now() });
   }
 
   function applyRemote(name, args) {
     Ops.apply(state, name, args);
-    save();
+    save({ op: { name, args } });
     if (Bus) Bus.emit('state:remote', { name, args }, { local: true });
   }
 
