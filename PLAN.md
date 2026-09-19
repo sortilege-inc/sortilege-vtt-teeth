@@ -147,6 +147,18 @@ after; "As printed" showed the TEMPLATE; Beatrice Yoker (False Kingdom) rendered
 Coin, Actions · 3 points, Titles. `/gm/` loaded 7 books with the sidebar, `gm/vtt.html` resolved
 its map to `/assets/maps/…` (200), `gm/play.html` showed Join. No console errors on the site.
 
+**The character creator (2026-09-19, owner's ask):** decisions 27–28. Proof, through the real
+controls on localhost: the Playbook step listed the core's five and More TEETH's five Hogmen with
+taglines and descriptions; Bruiser → "Hob Gaskin", Soldiery (the six backgrounds with their
+text); an answer to the first of the seven questions landed in the player's notes; Actions showed
+Fight 2 / Command 1 as fixed, accepted four added points, refused a fifth, and would not drop
+Fight below its floor; Savage Defences with its text; Elementalism + Touch (pick 1 each);
+The Big Lad as friend, Jenny Derwent as enemy, with the book's five questions; Stupor; the
+finished sheet showed all of it and the campaign's localStorage was byte-identical throughout.
+The exported file (no `preview`, kind `sortilege-vtt-character`) read back on the GM's page
+became a party member with the same picks, ratings and notes in the Inspector (then removed).
+A Hogman draft (Bopo the Scamp) offered a Clan field and Magic · pick 1.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -173,6 +185,8 @@ its map to `/assets/maps/…` (200), `gm/play.html` showed Join. No console erro
 | 24 | The GM's table moved under `gm/` (index, vtt, play — everything that was at the root) and the root became the site. The moved pages carry `<base href="../">` so scripts, assets and the map paths saved in campaign state stay root-relative; the pages link to each other through `VttConfig.pages` | Owner's ask 2026-09-19: the table at `/gm/`, a landing page at `/`. A base href moves three pages without rewriting a path or migrating a pack. |
 | 25 | The site (`engine/site.js` shell, `system/teeth/site.js` tabs) reads the corpus and writes nothing: no op, no save, no session. Its **Rules** tab is a reader over each book's untyped chapters (the typed roots — people, items, notables — are reached by search or by link); **Characters** lists the published adventures as the books of kind one-shot and standalone game that ship TEMPLATEs (the core's and More TEETH's Playbooks are the creator's business, not the selector's) | Goal: a public face that cannot disturb a campaign. Chapters by type-lessness is what the corpus gives without a hand list. |
 | 26 | A character on the site is the real sheet (`TeethSheet.live`) on a preview member: `m.preview` makes `patch` and `doRoll` change memory and redraw instead of committing; notes are not shown; `TeethSheet.scope(books)` gives it the adventure's books (a one-shot: core + shared + itself, as the GM's default campaign; a standalone game: itself). "As printed" is the entity renderer | One renderer for the GM, the player and the visitor; the visitor's tinkering is never saved (checked: localStorage byte-identical after boxes and a roll). |
+| 27 | The creator's steps are the core chapter's own (*Pick a Playbook*, *Define a Background*, *Decide What Hunters Want*, then *Finalise the Playbook*'s six), each shown verbatim from the entity of that name; the controls come from `TeethSheet.spec` of the chosen playbook, so More TEETH's Hogmen (EXTENDS Hunter) take the same walk, plus any scalar the actor declares and the playbook leaves open (Clan). The one number not in the corpus as a field — "Players add four more" — is a named constant citing the sentence. The playbook's own points are a floor; magic and items are optional as the book says | No hand-written step list: the book's chapter is the wizard. |
+| 28 | A made character leaves the site as a **character file** (`kind: sortilege-vtt-character`, v1, the party-member record) and enters a campaign through **Party › Add from file…**, which re-ids it and drops GM notes; the draft itself lives under a site key in that browser, never in a campaign. The answers to "what they want" become the player's notes | The site still writes nothing to a campaign; the GM's table stays the only writer. A file also survives a browser. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

@@ -341,3 +341,37 @@ a.card { text-decoration: none; display: block; }
   .site-cols { grid-template-columns: 1fr; }
   .site-aside { position: static; max-height: none; }
 }
+
+/* ── the character creator ─────────────────────────────────────────── */
+.creator-head { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+.creator-steps { list-style: none; margin: 0.4rem 0 1rem; padding: 0; display: flex; flex-wrap: wrap; gap: 0.2rem 0; counter-reset: step; }
+.creator-steps li { font-family: var(--sc); letter-spacing: 0.05em; font-size: 0.85rem; padding: 0.25rem 0.7rem; border-bottom: 2px solid var(--rule); color: var(--ink-3); }
+.creator-steps li::before { counter-increment: step; content: counter(step) ' '; color: var(--rule); }
+.creator-steps li a { color: inherit; text-decoration: none; }
+.creator-steps li.done { color: var(--moss); border-bottom-color: var(--moss); }
+.creator-steps li.current { color: var(--blood); border-bottom-color: var(--blood); }
+.creator-steps li.off { opacity: 0.5; }
+.creator-body { max-width: 900px; }
+.creator-body .guide { margin-bottom: 1rem; }
+.creator-body .guide h3 { margin: 0.2rem 0 0.3rem; }
+.creator-body .guide .small { font-family: var(--sc); font-size: 0.75rem; letter-spacing: 0.05em; text-decoration: none; }
+.creator-body h5.attr { font-family: var(--sc); letter-spacing: 0.08em; margin: 0.8rem 0 0.2rem; color: var(--ink-3); }
+.choose { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 0.5rem; margin: 0.3rem 0 0.8rem; }
+.choose.playbooks { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.choice { text-align: left; background: #f6efdf; border: 1px solid var(--rule); padding: 0.5rem 0.7rem; cursor: pointer; font: inherit; color: var(--ink); }
+.choice:hover { border-color: var(--blood); }
+.choice.on { border-color: var(--blood); box-shadow: inset 0 0 0 1px var(--blood); background: #f9e9e3; }
+.choice .card-desc { white-space: pre-line; }
+.creator-rating { align-items: flex-start; }
+.creator-rating .rating-body { flex: 1; }
+.creator-rating .box.fixed { border-style: double; }
+.answers .answer { display: block; margin: 0.5rem 0; }
+.answers .q { font-style: italic; margin-bottom: 0.2rem; }
+.answers textarea { width: 100%; }
+.creator-nav { margin-top: 1.2rem; }
+.creator-nav .btn { text-decoration: none; }
+@media print {
+  .site-head, .creator-steps, .creator-nav, .creator-head .btn, .guide, .chiprow { display: none !important; }
+  body.site { background: #fff; }
+  .site-main { max-width: none; padding: 0; }
+}

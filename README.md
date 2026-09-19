@@ -36,7 +36,13 @@ then open `http://localhost:8735/` for the site or `http://localhost:8735/gm/` f
 over every book — pick a book, its chapters on the left, the text on the right, verbatim, or
 search it; **Characters** picks one of the published adventures (the three one-shots and *False
 Kingdom*) and lists its characters — each opens as the sheet the players will use (boxes, dice
-and picks work, and nothing is saved) or as the book prints it; **Character creator** is next.
+and picks work, and nothing is saved) or as the book prints it; **Character creator** walks the
+core's own chapter (*Creating the Hunters* and *Finalise the Playbook*, each step's text verbatim)
+for any Hunter playbook — the core's five and More TEETH's five Hogmen — with the controls the
+sheet derives from that playbook: name and background, what they want, four points on Actions
+over the playbook's own, a special ability, magic (optional), a friend and an enemy, a vice, the
+items to know about. The draft stays in that browser; the result is a character file the GM adds
+with **Party › Add from file…**, or a printed sheet.
 
 **The GM's table** (`gm/`) opens on a *Blood Cotillion* campaign: **Module**
 (scenes by phase, tick as you go) · **Scene** (the book's text, read-aloud, clues you reveal,

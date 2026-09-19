@@ -204,6 +204,18 @@
         Panels.select({ kind: 'party', id: m.id });
       });
       container.appendChild(pick);
+      // a character made on the site's creator arrives as a file
+      const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
+      file.addEventListener('change', () => {
+        const f = file.files && file.files[0];
+        if (!f) return;
+        f.text().then((text) => {
+          const m = window.TeethSheet.readCharacter(JSON.parse(text));
+          State.commit('addPartyMember', [m]);
+          Panels.select({ kind: 'party', id: m.id });
+        }).catch((e) => alert(e.message)).finally(() => (file.value = ''));
+      });
+      container.appendChild(el('div', { class: 'chiprow' }, [button('Add from file…', () => file.click(), 'ghost tiny'), el('span', { class: 'muted' }, ['a character made on the site']), file]));
       if (!party.length) container.appendChild(el('div', { class: 'empty' }, ['No one in the party yet.']));
       party.forEach((m) => {
         const t = D.entity(m.templateId);

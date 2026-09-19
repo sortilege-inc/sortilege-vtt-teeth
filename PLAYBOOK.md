@@ -46,6 +46,12 @@ the sheet renderer serves the GM, the player and the visitor alike (`scope(books
 `m.preview`). Moved pages carry `<base href="../">` rather than rewritten paths, so state that
 stores a path (a map image) survives the move.
 
+A character creator is the book's own chapter walked step by step: the step texts are the
+entities of that chapter, verbatim; the controls are the sheet's spec of the chosen playbook (the
+same derivation the GM's and the player's sheet use); what leaves is a character file the table
+imports. Nothing about a step is hand-listed except a number the book states only in prose, and
+that is a named constant citing the sentence.
+
 ## 3. Shared state as named ops
 
 Every change to shared state is a named op applied identically in every window and in the

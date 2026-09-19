@@ -388,6 +388,7 @@ window.TeethSheet = (function () {
       ...sp.header.map((h) => h.ref ? el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [h.name]), el('div', { class: 'prop-v' }, [E.link(h.ref)])])
         : typeof h.value === 'string' && h.value.length > 60 ? el('details', { class: 'sheet-text' }, [el('summary', {}, [h.name]), paragraphs(h.value, 'prose small')])
         : el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [h.name + ': ']), String(h.value)])),
+      ...Object.keys(m.live.fields || {}).filter((k) => m.live.fields[k]).map((k) => el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [k + ': ']), String(m.live.fields[k])])),
     ]);
     const body = el('div', { class: 'sheet-body' }, [
       sp.tracks.length ? el('section', { class: 'tracks' }, [el('h4', {}, ['Tracks']), ...sp.tracks.map((tr) => trackRow(m, tr))]) : null,
@@ -429,5 +430,36 @@ window.TeethSheet = (function () {
     return wrap;
   }
 
-  return { spec, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope };
+  // ── a character as a file (the site's creator writes one; the GM's Party panel reads it) ──
+  const CHARACTER_KIND = 'sortilege-vtt-character';
+  function exportCharacter(m) {
+    const member = Object.assign({}, m);
+    delete member.preview;
+    return { kind: CHARACTER_KIND, version: 1, system: (window.VttConfig || {}).system || 'teeth', exportedAt: new Date().toISOString(), member };
+  }
+  function downloadCharacter(m) {
+    const file = exportCharacter(m);
+    const blob = new Blob([JSON.stringify(file, null, 1)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(m.name || 'character').replace(/[^A-Za-z0-9]+/g, '-').toLowerCase()}.teeth-character.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(a.href);
+      a.remove();
+    }, 0);
+  }
+  // Parse a character file into a party member for this campaign, or throw.
+  function readCharacter(obj) {
+    if (!obj || obj.kind !== CHARACTER_KIND) throw new Error('Not a character file (kind ' + (obj && obj.kind) + ').');
+    if (obj.version > 1) throw new Error('This character was saved by a newer build.');
+    const m = obj.member;
+    if (!m || !m.templateId || !m.live) throw new Error('The file has no character in it.');
+    const t = D.entity(m.templateId);
+    if (!t) throw new Error(`${m.name || 'This character'}'s playbook (${m.templateId}) is not in the loaded books.`);
+    return Object.assign({}, m, { id: State.genId('pc'), notes: '', preview: undefined });
+  }
+
+  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter };
 })();
