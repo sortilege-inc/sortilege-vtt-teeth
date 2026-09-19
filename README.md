@@ -7,7 +7,9 @@ copy its shape ([PLAYBOOK.md](PLAYBOOK.md)). Plan, decisions and milestones: [PL
 
 Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessions.
 
-**Live:** https://sortilege-inc.github.io/sortilege-vtt-teeth/ · Worker: `https://sortilege-vtt-teeth.sortilege.workers.dev` ·
+**Live:** https://sortilege-inc.github.io/sortilege-vtt-teeth/ (the site: the rules, the published
+characters) · https://sortilege-inc.github.io/sortilege-vtt-teeth/gm/ (the GM's table) ·
+Worker: `https://sortilege-vtt-teeth.sortilege.workers.dev` ·
 first campaign: `~/Sortilege/Campaigns/2026 TEETH/teeth-campaign-blood-cotillion/` (its own repo).
 
 ## Status
@@ -28,7 +30,15 @@ first campaign: `~/Sortilege/Campaigns/2026 TEETH/teeth-campaign-blood-cotillion
 python3 -m http.server 8735
 ```
 
-then open `http://localhost:8735/`. The GM page opens on a *Blood Cotillion* campaign: **Module**
+then open `http://localhost:8735/` for the site or `http://localhost:8735/gm/` for the table.
+
+**The site** (`index.html`) is the public face, and touches no campaign: **Rules** is a reader
+over every book — pick a book, its chapters on the left, the text on the right, verbatim, or
+search it; **Characters** picks one of the published adventures (the three one-shots and *False
+Kingdom*) and lists its characters — each opens as the sheet the players will use (boxes, dice
+and picks work, and nothing is saved) or as the book prints it; **Character creator** is next.
+
+**The GM's table** (`gm/`) opens on a *Blood Cotillion* campaign: **Module**
 (scenes by phase, tick as you go) · **Scene** (the book's text, read-aloud, clues you reveal,
 resolutions, GM guidance, your notes) · **Inspector** (whatever you last clicked). The sidebar
 swaps in **Party** (add a character from any playbook in the campaign's books — or the Outfit as a
@@ -39,14 +49,14 @@ Inspector), **Clocks** (the books' clocks or your own, each GM-only or shown to 
 table the books roll on has a **Roll on this table** button in the Inspector.
 Everything you tick or type is saved in this browser as you go.
 
-**Open table** puts the current scene's map in its own window (`vtt.html`): grid calibration,
+**Open table** puts the current scene's map in its own window (`gm/vtt.html`): grid calibration,
 tokens for the party and the cast (add them from the toolbar; drag to move; right-click to hide,
 resize, rename), pings, circle / line / square effects, fog with reveal rectangles. A scene may
 ship several maps — Buckleridge Manor is four floors, one map each, the middle floor first — and
 the toolbar's map list switches between them; tokens and fog belong to the floor. It follows the
 GM's scene unless pinned. **Legend** pulls up the map's key, verbatim from the book (the
 Floorplan's numbered rooms), as a panel for the GM only: it is not drawn on the map and never
-reaches players. **Open player view** (`vtt.html?view=player`) is the same map with no controls,
+reaches players. **Open player view** (`gm/vtt.html?view=player`) is the same map with no controls,
 fog opaque and hidden tokens absent — for the TV, or for a player's device in a session; it
 follows whichever map the GM's table is showing. Map images live in `assets/maps/`;
 `system/teeth/table.js` says which scene ships with which maps and where each legend comes from.
@@ -54,7 +64,7 @@ follows whichever map the GM's table is showing. Map images live in `assets/maps
 ## Sessions — players on their own devices
 
 **Start session** in the sidebar creates a room and shows a code and a join link
-(`play.html?s=CODE`). A player opens it on their phone, claims one of the party's characters,
+(`gm/play.html?s=CODE`). A player opens it on their phone, claims one of the party's characters,
 and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes; they
 can open the table in player view and move their own token. Everything they do shows up live
 on the GM's page and table; everything the GM does to their character shows up live on theirs.
@@ -96,10 +106,13 @@ Gate status from `bash build/build.sh` on 2026-09-19: 94 DSL files, **7 books, 2
 ## Layout
 
 ```
+index.html      the site: rules reader, character selector (engine/site.js + system/teeth/site.js)
+gm/             the GM's table (index.html), the map window (vtt.html), the player's page (play.html);
+                each carries <base href="../"> so every path is root-relative
 build/          the generator and its gate
 data/           GENERATED — window.TEETH.books / .entities / .index
-engine/         system-agnostic: bus, ops, state, session, panels, the shell, the table, the player's page
-system/teeth/   the TEETH module: sheets, tracks, clocks, the d6 pool roller, TEETH ops
+engine/         system-agnostic: bus, ops, state, session, panels, the shell, the table, the player's page, the site shell
+system/teeth/   the TEETH module: sheets, tracks, clocks, the d6 pool roller, TEETH ops, the site's tabs
 assets/maps/    the GM's maps (web-sized; the Manor's four floors cut from the flat plan); assets/art/ portraits and handouts
 worker/         the Cloudflare Worker: the SessionRoom Durable Object (deploy separately)
 docs/           notes; PLAN.md is the decision log

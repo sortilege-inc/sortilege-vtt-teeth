@@ -137,6 +137,16 @@ table and the player view, the op arriving while localStorage still read the old
 (instrumented log). Worker redeployed with the new op (version 54e6a879); 10 Node assertions on
 `setTableMap` / map-id ops pass.
 
+**The site (2026-09-19, owner's ask):** root = the site, `/gm/` = the table (decisions 24–26).
+Proof: `/` opened on Rules · core with the five chapters (How to Begin … The Rules); *The Action
+Roll* read verbatim with its Contents; search "resistance" gave 11 results; Characters listed
+Night of the Hogmen (9), Blood Cotillion (8), Stranger and Stranger (7), False Kingdom (24);
+Lizzie Ambleclott's sheet showed Stress 0/8, Suspicion 0/6, four Attributes, Hidden Objects
+pick 4 — a Stress box and a Brawn roll worked and localStorage was byte-identical before and
+after; "As printed" showed the TEMPLATE; Beatrice Yoker (False Kingdom) rendered with Dede Dice,
+Coin, Actions · 3 points, Titles. `/gm/` loaded 7 books with the sidebar, `gm/vtt.html` resolved
+its map to `/assets/maps/…` (200), `gm/play.html` showed Join. No console errors on the site.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -160,6 +170,9 @@ table and the player view, the op arriving while localStorage still read the old
 | 20 | The first campaign pack is a sibling folder with its own git history and no remote — a starter pack, not the test data from this build | Goal 3: the instance is the owner's; a remote is their call. |
 | 21 | Maps are first-class, keyed by a map id, and a scene may ship several (`MODULE_MAPS.<module>` is a list; a scene with none is its own blank map). Buckleridge Manor is four floors cut from the flat plan (2160 px wide, the legend column cropped away), the middle floor first because guests arrive there; the combined plan is gone. Which map the table shows is shared state (`table.map`, op `setTableMap`, GM only), so the player view follows the GM's floor | Owner's ask 2026-09-19: "split it into the four maps instead". Tokens and fog then belong to a floor, which is what a floor plan needs. |
 | 22 | A map's legend is the corpus entity's verbatim lines (`A Floorplan of Buckleridge Manor`, one list per floor — checked against the book's p. 10, which the DSL follows; the flat JPG's own legend wording differs slightly and is not used). The GM pulls it up from the table's toolbar as an HTML panel over the stage; it is never drawn into the SVG, never built in the player view, never shared. The Scene panel's text already carries the same lines, so no second copy was added there | Owner's ask: a legend the GM can pull up, not displayed on the map. Verbatim-rules rule. |
+| 24 | The GM's table moved under `gm/` (index, vtt, play — everything that was at the root) and the root became the site. The moved pages carry `<base href="../">` so scripts, assets and the map paths saved in campaign state stay root-relative; the pages link to each other through `VttConfig.pages` | Owner's ask 2026-09-19: the table at `/gm/`, a landing page at `/`. A base href moves three pages without rewriting a path or migrating a pack. |
+| 25 | The site (`engine/site.js` shell, `system/teeth/site.js` tabs) reads the corpus and writes nothing: no op, no save, no session. Its **Rules** tab is a reader over each book's untyped chapters (the typed roots — people, items, notables — are reached by search or by link); **Characters** lists the published adventures as the books of kind one-shot and standalone game that ship TEMPLATEs (the core's and More TEETH's Playbooks are the creator's business, not the selector's) | Goal: a public face that cannot disturb a campaign. Chapters by type-lessness is what the corpus gives without a hand list. |
+| 26 | A character on the site is the real sheet (`TeethSheet.live`) on a preview member: `m.preview` makes `patch` and `doRoll` change memory and redraw instead of committing; notes are not shown; `TeethSheet.scope(books)` gives it the adventure's books (a one-shot: core + shared + itself, as the GM's default campaign; a standalone game: itself). "As printed" is the entity renderer | One renderer for the GM, the player and the visitor; the visitor's tinkering is never saved (checked: localStorage byte-identical after boxes and a roll). |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

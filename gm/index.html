@@ -3,25 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TEETH</title>
+<base href="../">
+<title>TEETH — the table</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Alegreya:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/teeth.css">
 </head>
-<body class="site">
-<header class="site-head">
-  <div class="brand"><div class="brand-title">TEETH</div><div class="brand-sub">the rules · the characters · the table</div></div>
-  <nav class="site-tabs" id="site-tabs"></nav>
-  <div class="site-links"><a class="btn ghost" href="gm/play.html">Join a game</a><a class="btn" href="gm/">The GM's table</a></div>
-</header>
-<main class="site-main" id="site-main"></main>
+<body>
+<aside id="sidebar">
+  <div id="brand" class="brand"></div>
+  <ul id="nav" class="nav"></ul>
+  <div id="window-controls" class="window-controls"></div>
+  <div id="session-controls" class="session-controls"></div>
+  <div id="sidebar-foot" class="sidebar-foot"><a href="./" class="muted">site</a> · <a href="PLAN.md" class="muted">plan</a></div>
+</aside>
+<main id="main" class="main"></main>
 
 <script src="engine/config.js"></script>
 <script src="engine/bus.js"></script>
 <script src="engine/ops.js"></script>
 <script src="engine/state.js"></script>
 <script src="engine/render.js"></script>
+<script src="engine/panels.js"></script>
 <script src="data/index.js"></script>
 <script src="data/core.js"></script>
 <script src="data/oneshot-shared.js"></script>
@@ -33,7 +37,9 @@
 <script src="system/teeth/data.js"></script>
 <script src="system/teeth/entity.js"></script>
 <script src="system/teeth/sheet.js"></script>
-<script src="system/teeth/site.js"></script>
-<script src="engine/site.js"></script>
+<script src="system/teeth/panels.js"></script>
+<script src="system/teeth/table.js"></script>
+<script src="engine/session.js"></script>
+<script src="engine/app.js"></script>
 </body>
 </html>

@@ -9,6 +9,7 @@ window.TeethEntity = (function () {
   const D = window.TeethData;
 
   function selectEntity(id) {
+    if (window.VttEntitySelect) return window.VttEntitySelect(id);   // a page without panels (the site) reads it its own way
     window.VttPanels.select({ kind: 'entity', id });
   }
 

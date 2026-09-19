@@ -305,3 +305,39 @@ body.play { display: block; }
 .clock-strip .box { display: inline-block; cursor: default; }
 .table-roll { margin: 0.3rem 0; }
 table.grid tr.hit td, table.grid tr.hit th { background: #f3e3c0; }
+
+/* ── the site (index.html): rules reader, character selector ─────────── */
+body.site { display: block; }
+.site-head { display: flex; align-items: center; gap: 1.2rem; flex-wrap: wrap; background: var(--ink); color: var(--paper); padding: 0.6rem 1.2rem; }
+.site-head .brand-title { font-size: 1.6rem; }
+.site-tabs { display: flex; gap: 0.2rem; margin-left: 0.6rem; }
+.site-tab { font-family: var(--sc); letter-spacing: 0.06em; font-size: 0.95rem; color: var(--paper-3); text-decoration: none; padding: 0.45rem 0.8rem; border-bottom: 2px solid transparent; }
+.site-tab:hover { color: #fff; }
+.site-tab.active { color: #fff; border-bottom-color: var(--blood-2); }
+.site-tab.disabled { opacity: 0.45; }
+.site-links { margin-left: auto; display: flex; gap: 0.5rem; }
+.site-links .btn { text-decoration: none; }
+.site-links .btn.ghost { color: var(--paper-3); border-color: var(--ink-3); }
+.site-main { max-width: 1240px; margin: 0 auto; padding: 1rem 1.2rem 3rem; }
+.site-h { margin: 0.4rem 0 0.2rem; }
+.site-cols { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 1.6rem; align-items: start; }
+.site-aside { position: sticky; top: 0.5rem; max-height: calc(100vh - 1rem); overflow: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+.site-aside .scope, .site-aside .search { width: 100%; }
+.site-toc details { margin: 0.1rem 0; }
+.site-toc summary { cursor: pointer; font-family: var(--display); font-size: 1.02rem; }
+.site-toc summary .ref { font: inherit; }
+.site-toc .items.toc { margin: 0.2rem 0 0.5rem 0.9rem; }
+.site-toc a.ref { text-decoration: none; }
+.site-toc .ref.active { color: var(--blood); font-weight: 600; }
+.site-reader .entity { max-width: 820px; }
+.site-crumbs { font-family: var(--sc); letter-spacing: 0.06em; font-size: 0.8rem; color: var(--ink-3); margin: 0.2rem 0 0.6rem; }
+.site-crumbs a { color: inherit; }
+.cards.adventures { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+a.card { text-decoration: none; display: block; }
+.sheet-views { margin: 0.4rem 0 0.8rem; align-items: center; }
+.sheet-views .btn { text-decoration: none; }
+.site-sheet .sheet { max-width: 820px; }
+@media (max-width: 900px) {
+  .site-cols { grid-template-columns: 1fr; }
+  .site-aside { position: static; max-height: none; }
+}

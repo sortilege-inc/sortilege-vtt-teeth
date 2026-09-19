@@ -86,7 +86,7 @@ window.VttSession = (function () {
 
   function joinUrl() {
     if (!info) return null;
-    const u = new URL('play.html', location.href);
+    const u = new URL((CFG.pages && CFG.pages.play) || 'play.html', document.baseURI);
     u.searchParams.set('s', info.code);
     return u.toString();
   }

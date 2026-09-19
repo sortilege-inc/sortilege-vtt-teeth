@@ -4,6 +4,10 @@ window.VttConfig = {
   title: 'TEETH',
   channel: 'sortilege-vtt-teeth',        // BroadcastChannel name (same-machine windows)
   storagePrefix: 'sortilege-vtt-teeth',  // localStorage key prefix
+  // The pages, relative to the site root. The site (index.html) is the public face —
+  // rules, the published characters; gm/ is the table. The gm/ pages carry
+  // <base href="../"> so every path in code and in saved state is root-relative.
+  pages: { site: './', gm: 'gm/', table: 'gm/vtt.html', play: 'gm/play.html' },
   // what a fresh browser opens on until a campaign is created or restored
   defaultCampaign: { name: 'Blood Cotillion', modules: ['cotillion'], books: ['core', 'oneshot-shared', 'cotillion'] },
   // The Worker that holds player sessions (M5). Served from localhost the app talks

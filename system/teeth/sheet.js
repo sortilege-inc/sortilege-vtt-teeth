@@ -23,11 +23,17 @@ window.TeethSheet = (function () {
   const Bus = window.VttBus;
 
   const S = () => State.state;
-  // the campaign's books, whichever page this sheet is on (the player's page has no panels)
+  // the campaign's books, whichever page this sheet is on (the player's page has no panels);
+  // a page showing sheets outside a campaign (the site's character selector) sets a scope
+  let bookScope = null;
   const books = () => {
+    if (bookScope) return bookScope;
     const b = (S().campaign && S().campaign.books) || [];
     return b.length ? b : null;
   };
+  function scope(bookIds) {
+    bookScope = bookIds && bookIds.length ? bookIds.slice() : null;
+  }
 
   // ── the spec of a sheet, from the template's actor chain ──────────
   function actorChain(template) {
@@ -181,8 +187,15 @@ window.TeethSheet = (function () {
     return (S().party || []).find((m) => m.id === id) || null;
   }
 
+  // A preview member (m.preview set) is never committed: the sheet changes in memory
+  // and the page redraws — the site's "try the sheet", nothing saved anywhere.
   function patch(m, key, value) {
     const next = Object.assign({}, m.live[key] || {}, value);
+    if (m.preview) {
+      m.live[key] = next;
+      if (m.preview.onChange) m.preview.onChange();
+      return;
+    }
     State.commit('setPartyLive', [m.id, { [key]: next }]);
   }
 
@@ -218,6 +231,7 @@ window.TeethSheet = (function () {
       at: new Date().toISOString(), kind: 'roll', memberId: m.id, who: m.name, axis, rating: rating + (extra || 0),
       dice: pool.dice, zero: pool.zero, band: res.band, text: res.text,
     };
+    if (m.preview) return entry;
     State.commit('appendLog', [entry]);
     Bus.emit('roll', entry);
     return entry;
@@ -384,11 +398,11 @@ window.TeethSheet = (function () {
       ...sp.lists.map((l) => listRows(m, l)),
       ...sp.texts.map((tx) => textRows(m, tx)),
       sp.rubrics.length ? el('div', { class: 'rubric' }, [sp.rubrics.join(' · ')]) : null,
-      opts.player ? null : el('section', { class: 'gm-notes' }, [
+      opts.player || opts.preview ? null : el('section', { class: 'gm-notes' }, [
         el('h4', {}, ['GM notes ', el('span', { class: 'muted' }, ['(never sent to players)'])]),
         el('textarea', { rows: 3, oninput: debounce((ev) => State.commit('setPartyNotes', [m.id, ev.target.value]), 400) }, [m.notes || '']),
       ]),
-      el('section', { class: 'player-notes' }, [
+      opts.preview ? null : el('section', { class: 'player-notes' }, [
         el('h4', {}, ['Player notes']),
         el('textarea', { rows: 3, oninput: debounce((ev) => State.commit('setPartyPlayerNotes', [m.id, ev.target.value]), 400) }, [m.playerNotes || '']),
       ]),
@@ -415,5 +429,5 @@ window.TeethSheet = (function () {
     return wrap;
   }
 
-  return { spec, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone };
+  return { spec, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope };
 })();

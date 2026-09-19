@@ -39,6 +39,13 @@ means, which ops a player may send) · `data/` (generated). The engine's only co
 system is: a registry of panels, a sheet renderer, an ops table with role rules, and a dice
 adapter.
 
+Two faces on one corpus: the site at the root (a reader over the books, the published
+characters as the real sheet on a member that is never saved) and the table under `gm/`. The
+site writes nothing — no op, no save, no session — so a visitor cannot disturb a campaign, and
+the sheet renderer serves the GM, the player and the visitor alike (`scope(books)` +
+`m.preview`). Moved pages carry `<base href="../">` rather than rewritten paths, so state that
+stores a path (a map image) survives the move.
+
 ## 3. Shared state as named ops
 
 Every change to shared state is a named op applied identically in every window and in the
