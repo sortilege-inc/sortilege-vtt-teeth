@@ -12,8 +12,8 @@ Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessi
 | Milestone | State |
 |---|---|
 | M1 — `build/` generates `data/` from the corpus; two-directional gate | **landed** (2026-09-19) |
-| M2 — engine + TEETH glossary, module tracker, scene panel (Blood Cotillion) | next |
-| M3 — sheets, party, campaign pack | — |
+| M2 — engine + TEETH glossary, module tracker, scene panel (Blood Cotillion) | **landed** (2026-09-19) |
+| M3 — sheets, party, campaign pack | next |
 | M4 — VTT | — |
 | M5 — Worker + rooms | — |
 | M6 — remaining modules, Outfit sheet, clocks | — |
@@ -24,6 +24,13 @@ Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessi
 ```bash
 python3 -m http.server 8735
 ```
+
+then open `http://localhost:8735/`. The GM page opens on a *Blood Cotillion* campaign: **Module**
+(scenes by phase, tick as you go) · **Scene** (the book's text, read-aloud, clues you reveal,
+resolutions, GM guidance, your notes) · **Inspector** (whatever you last clicked). The sidebar
+swaps in **Cast**, **Rules & Books** (search everything with `/`, or browse a book), **Lore** and
+**Campaign** (which modules and books are in play; save / restore the campaign as a pack).
+Everything you tick or type is saved in this browser as you go.
 
 ## Where the content comes from
 

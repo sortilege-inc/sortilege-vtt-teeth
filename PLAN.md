@@ -118,7 +118,7 @@ not have" as the worked example of adding a system.
 | # | Milestone | Proof |
 |---|---|---|
 | M1 | Repo skeleton, `build/` generating `data/` from the TEETH corpus with the two-directional gate; `PLAYBOOK.md` started | **landed 2026-09-19** — `build.sh`: 94 files, 7 books, 2359 entities; `verify_data: 6488 DSL strings + 246 lore lines — 0 uncovered · 0 unsourced` |
-| M2 | Engine: bus, ops-core, state, store adapters (local), layout, panel registry; TEETH rules glossary + module tracker + scene panel for Blood Cotillion | browser: page through the 17 scenes, read-aloud, clues, notes persist |
+| M2 | Engine: bus, ops-core, state, store adapters (local), layout, panel registry; TEETH rules glossary + module tracker + scene panel for Blood Cotillion | **landed 2026-09-19** — browser at 1440px: three columns Module · Scene · Inspector; scene 10 opened from the tracker (current row marked, six clues shown), a clue ticked and GM notes typed both persisted through a reload; Cast → Lord Kirklan Kelmorton in the Inspector; search "Position" → 41 results across the campaign's books; 0 console errors |
 | M3 | TEETH sheets: the one-shot Ingenue sheet and the core Hunter Playbook as live sheets with the d6 roller, tracks, Injury, Coin; party panel; campaign pack load/save/restore | browser: import a pack, roll, tick, save, restore byte-identical |
 | M4 | VTT: map from the pack, grid calibration, tokens for party + cast, fog, pings, effects; player view | three windows as Wyldwolf's proof |
 | M5 | Worker + rooms: join, claim, role-filtered ops, reconnect; play.html sheet on a phone | localhost vs 127.0.0.1 two-origin test; wrangler deploy |
@@ -136,3 +136,5 @@ One commit per milestone, pushed; each verified in the browser by the main sessi
 | 3 | ~~Module maps are declared without images; the pack supplies them~~ → **(owner)** maps and art live in this repo under `assets/`, served by Pages; the pack is state only | Q2 above. |
 | 4 | `data/` is parsed straight from the DSL with the generic parser, not merged by the synthesist | The synthesist's implicit override collapses same-named DEFs across books (every module has its own `^"Stress"`, `^"Position"`…); the VTT wants all of them, keyed by hash. |
 | 5 | One `data/<book>.js` per book, generic hash-keyed entities; `system/teeth/` interprets by `type` | 2.3 MB of prose loads per book; the engine never learns a game word (goal 4). |
+| 6 | The GM page is three fixed columns with a panel picker per column (Module · Scene · Inspector by default), not Wyldwolf's nested tile tree yet | Enough for play; the picker is the same registry the tree would use, so the tree can come later without touching panels. |
+| 7 | A campaign is state only in this browser (`localStorage` per campaign id) until M5; the pack (`kind: sortilege-vtt-campaign`) exports/restores it | Goal 3 from day one; the room server becomes another store for the same document. |
