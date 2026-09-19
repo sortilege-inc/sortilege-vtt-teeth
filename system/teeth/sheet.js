@@ -451,14 +451,14 @@ window.TeethSheet = (function () {
     }, 0);
   }
   // Parse a character file into a party member for this campaign, or throw.
-  function readCharacter(obj) {
+  function readCharacter(obj, fileName) {
     if (!obj || obj.kind !== CHARACTER_KIND) throw new Error('Not a character file (kind ' + (obj && obj.kind) + ').');
     if (obj.version > 1) throw new Error('This character was saved by a newer build.');
     const m = obj.member;
     if (!m || !m.templateId || !m.live) throw new Error('The file has no character in it.');
     const t = D.entity(m.templateId);
     if (!t) throw new Error(`${m.name || 'This character'}'s playbook (${m.templateId}) is not in the loaded books.`);
-    return Object.assign({}, m, { id: State.genId('pc'), notes: '', preview: undefined });
+    return Object.assign({}, m, { id: State.genId('pc'), notes: '', preview: undefined, source: { kind: 'file', name: fileName || null, exportedAt: obj.exportedAt || null, loadedAt: new Date().toISOString() } });
   }
 
   return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter };

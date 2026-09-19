@@ -159,6 +159,14 @@ The exported file (no `preview`, kind `sortilege-vtt-character`) read back on th
 became a party member with the same picks, ratings and notes in the Inspector (then removed).
 A Hogman draft (Bopo the Scamp) offered a Clan field and Magic · pick 1.
 
+**Loading custom characters (2026-09-19, owner's ask):** decision 30. Proof on localhost: the
+Campaign panel showed *Player characters · saved in the pack* with a multi-file loader accepting
+`.json`; a character file read through `readCharacter` and committed appeared in the list as
+"Hob Gaskin · Bruiser · loaded from hob-gaskin.teeth-character.json" with download and remove;
+`exportPack()` carried the member with its source and Background pick; importing that pack as a
+new campaign restored the party with the member (then removed, and the test campaign deleted).
+The creator's last step reads **Download as JSON** and names the file.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -188,6 +196,7 @@ A Hogman draft (Bopo the Scamp) offered a Clan field and Magic · pick 1.
 | 27 | The creator's steps are the core chapter's own (*Pick a Playbook*, *Define a Background*, *Decide What Hunters Want*, then *Finalise the Playbook*'s six), each shown verbatim from the entity of that name; the controls come from `TeethSheet.spec` of the chosen playbook, so More TEETH's Hogmen (EXTENDS Hunter) take the same walk, plus any scalar the actor declares and the playbook leaves open (Clan). The one number not in the corpus as a field — "Players add four more" — is a named constant citing the sentence. The playbook's own points are a floor; magic and items are optional as the book says | No hand-written step list: the book's chapter is the wizard. |
 | 28 | A made character leaves the site as a **character file** (`kind: sortilege-vtt-character`, v1, the party-member record) and enters a campaign through **Party › Add from file…**, which re-ids it and drops GM notes; the draft itself lives under a site key in that browser, never in a campaign. The answers to "what they want" become the player's notes | The site still writes nothing to a campaign; the GM's table stays the only writer. A file also survives a browser. |
 | 29 | The site answers at **teeth.sortilege.online** (the owner added the CNAME through Pages, 2026-09-19); the Worker's `ALLOWED_ORIGIN` became a comma-separated list — the custom domain and the github.io fallback — so a session started from either origin is admitted | Found as a rejected push (the CNAME commit); without the change, Start session on the new domain would be refused. |
+| 30 | Custom player characters enter a campaign through the Campaign panel's **Player characters** section (or Party › Add from file…): a loaded character is a party member with a `source` (file name, when exported, when loaded), so it is in the pack's `party` and survives Save / Restore; it can be downloaded again as a character file from the same list. The creator's last step names the download plainly: **Download as JSON** | Owner's ask 2026-09-19. The party is already what the pack carries; the section makes the loading and its consequence visible rather than adding a second store. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

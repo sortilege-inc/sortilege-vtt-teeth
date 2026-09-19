@@ -518,10 +518,10 @@ window.VttSiteTabs = (function () {
         body.appendChild(el('h3', {}, [m.name || t.name]));
         body.appendChild(missing.length ? el('p', { class: 'muted' }, ['Still to do: ' + missing.join(', ') + '.']) : el('p', { class: 'muted' }, ['Every step the book asks for is done.']));
         body.appendChild(el('div', { class: 'chiprow' }, [
-          button('Download the character', () => Sheet.downloadCharacter(m)),
+          button('Download as JSON', () => Sheet.downloadCharacter(m)),
           button('Print', () => window.print(), 'ghost'),
-          el('span', { class: 'muted' }, ['Give the file to your GM: on the table, Party › Add from file…']),
         ]));
+        body.appendChild(el('p', { class: 'muted' }, [`The download is ${(m.name || 'character').replace(/[^A-Za-z0-9]+/g, '-').toLowerCase()}.teeth-character.json — the whole character. Give it to your GM: on the GM’s table, Campaign › Load character file… puts it in the campaign, and the campaign pack carries it from then on.`]));
         const sheetBox = el('div', { class: 'site-sheet' });
         const drawSheet = () => {
           sheetBox.innerHTML = '';

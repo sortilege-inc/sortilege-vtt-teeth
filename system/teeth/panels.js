@@ -204,18 +204,7 @@
         Panels.select({ kind: 'party', id: m.id });
       });
       container.appendChild(pick);
-      // a character made on the site's creator arrives as a file
-      const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
-      file.addEventListener('change', () => {
-        const f = file.files && file.files[0];
-        if (!f) return;
-        f.text().then((text) => {
-          const m = window.TeethSheet.readCharacter(JSON.parse(text));
-          State.commit('addPartyMember', [m]);
-          Panels.select({ kind: 'party', id: m.id });
-        }).catch((e) => alert(e.message)).finally(() => (file.value = ''));
-      });
-      container.appendChild(el('div', { class: 'chiprow' }, [button('Add from file…', () => file.click(), 'ghost tiny'), el('span', { class: 'muted' }, ['a character made on the site']), file]));
+      container.appendChild(el('div', { class: 'chiprow' }, [characterLoader('Add from file…', 'ghost tiny'), el('span', { class: 'muted' }, ['a character made on the site'])]));
       if (!party.length) container.appendChild(el('div', { class: 'empty' }, ['No one in the party yet.']));
       party.forEach((m) => {
         const t = D.entity(m.templateId);
@@ -233,6 +222,23 @@
     ctx.on('state:changed', draw);
     ctx.on('state:remote', draw);
     draw();
+  }
+
+  // A character file (the site's creator writes one) becomes a party member — and so part of
+  // the campaign pack from then on. One control, used by the Party and Campaign panels.
+  function characterLoader(label, cls) {
+    const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true, multiple: true });
+    file.addEventListener('change', () => {
+      const files = Array.from(file.files || []);
+      Promise.all(files.map((f) => f.text().then((text) => window.TeethSheet.readCharacter(JSON.parse(text), f.name))))
+        .then((members) => {
+          members.forEach((m) => State.commit('addPartyMember', [m]));
+          if (members.length) Panels.select({ kind: 'party', id: members[members.length - 1].id });
+        })
+        .catch((e) => alert(e.message))
+        .finally(() => (file.value = ''));
+    });
+    return el('span', {}, [button(label, () => file.click(), cls), file]);
   }
 
   // ── Clocks ─────────────────────────────────────────────────────────
@@ -411,6 +417,22 @@
         ' ' + b.title,
       ])));
       container.appendChild(el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, ['Books for reference']), el('div', { class: 'prop-v' }, [bookBox])]));
+
+      // the player characters: made from a playbook here or loaded from a character file; they
+      // are the pack's `party`, so Save pack carries them and Restore pack brings them back
+      const party = S().party || [];
+      container.appendChild(el('h4', {}, ['Player characters', el('span', { class: 'muted' }, [' · saved in the pack'])]));
+      container.appendChild(party.length ? el('ul', { class: 'items' }, party.map((m) => {
+        const t = D.entity(m.templateId);
+        const from = m.source && m.source.kind === 'file' ? `loaded from ${m.source.name || 'a character file'}` : 'made here';
+        return el('li', {}, [
+          el('button', { class: 'ref', type: 'button', onclick: () => Panels.select({ kind: 'party', id: m.id }) }, [m.name]),
+          el('span', { class: 'muted' }, [` · ${t ? t.name : m.templateId} · ${from}`]),
+          button('download', () => window.TeethSheet.downloadCharacter(m), 'ghost tiny'),
+          button('remove', () => { if (confirm(`Remove ${m.name} from the campaign?`)) State.commit('removePartyMember', [m.id]); }, 'ghost tiny'),
+        ]);
+      })) : el('div', { class: 'empty' }, ['No player characters yet.']));
+      container.appendChild(el('div', { class: 'chiprow' }, [characterLoader('Load character file(s)…', 'ghost'), el('span', { class: 'muted' }, ['.teeth-character.json, from the site’s creator or a download here'])]));
 
       // instances in this browser
       const list = State.listCampaigns();
