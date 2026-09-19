@@ -24,6 +24,55 @@
     statusEl.appendChild(button('Leave', () => { Session.leave(); render(); }, 'ghost tiny'));
   }
 
+  // ── bring your own character ───────────────────────────────────────
+  // A character file (the site's creator writes one) can be loaded before joining or on the
+  // claim screen. It waits here until the room is online, then joins the party and is
+  // claimed in one go — and it waits out a reload, in this tab.
+  const PENDING_KEY = (CFG.storagePrefix || 'sortilege-vtt') + ':play:pending';
+  let pending = (() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(PENDING_KEY) || 'null');
+    } catch (e) {
+      return null;
+    }
+  })();
+  function setPending(m) {
+    pending = m;
+    try {
+      if (m) sessionStorage.setItem(PENDING_KEY, JSON.stringify(m));
+      else sessionStorage.removeItem(PENDING_KEY);
+    } catch (e) {
+      /* no storage */
+    }
+  }
+  function seatPending() {
+    const s = Session.current();
+    if (!pending || !s.active || !s.connected || s.info.memberId) return false;
+    const m = pending;
+    setPending(null);
+    State.commit('addPartyMember', [m]);
+    Session.claim(m.id);
+    return true;
+  }
+  function characterLoader(note) {
+    const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
+    const msg = el('div', { class: 'muted' }, [pending ? `${pending.name} is ready — they take their seat when you join.` : '']);
+    file.addEventListener('change', () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      f.text().then((text) => {
+        const m = Sys.readCharacter(JSON.parse(text), f.name);
+        setPending(m);
+        if (!seatPending()) msg.textContent = `${m.name} is ready — they take their seat when you join.`;
+        else msg.textContent = `${m.name} is at the table.`;
+      }).catch((e) => (msg.textContent = e.message)).finally(() => (file.value = ''));
+    });
+    return el('div', {}, [
+      el('div', { class: 'chiprow' }, [button(pending ? 'Load a different character file…' : 'Load my character file…', () => file.click(), 'ghost'), el('span', { class: 'muted' }, [note]), file]),
+      msg,
+    ]);
+  }
+
   function joinScreen() {
     const code = el('input', { type: 'text', class: 'text code-input', placeholder: 'Room code', maxlength: '8', autocapitalize: 'characters', value: (params.get('s') || '').toUpperCase() });
     const msg = el('div', { class: 'muted' });
@@ -38,9 +87,10 @@
     });
     return el('div', { class: 'play-card' }, [
       el('h1', {}, ['Join the table']),
-      el('p', {}, ['Your GM gave you a room code. Enter it to claim your character.']),
+      el('p', {}, ['Your GM gave you a room code. Enter it to claim your character — or bring the one you made.']),
       el('div', { class: 'chiprow' }, [code, go]),
       msg,
+      characterLoader('made on the site’s character creator; it joins the party when you do'),
       Session.configured() ? null : el('div', { class: 'muted' }, ['Sessions aren’t configured on this deployment yet.']),
     ]);
   }
@@ -53,24 +103,10 @@
       b.disabled = !!claimed;
       return el('div', { class: 'card static' }, [el('div', { class: 'card-name' }, [m.name]), el('div', { class: 'card-sub' }, [Sys.memberSubtitle(m)]), b]);
     });
-    // bring your own: a character file from the site's creator goes into the party and is claimed
-    const file = el('input', { type: 'file', accept: '.json,application/json', hidden: true });
-    const msg = el('div', { class: 'muted' });
-    file.addEventListener('change', () => {
-      const f = file.files && file.files[0];
-      if (!f) return;
-      f.text().then((text) => {
-        const m = Sys.readCharacter(JSON.parse(text), f.name);
-        State.commit('addPartyMember', [m]);
-        Session.claim(m.id);
-        msg.textContent = `${m.name} is at the table.`;
-      }).catch((e) => (msg.textContent = e.message)).finally(() => (file.value = ''));
-    });
     return el('div', { class: 'play-card' }, [
       el('h1', {}, ['Who are you?']),
       party.length ? el('div', { class: 'cards' }, cards) : el('p', { class: 'muted' }, [s.connected ? 'The GM hasn’t added any characters yet.' : 'Connecting…']),
-      el('div', { class: 'chiprow' }, [button('Load my character file…', () => file.click(), 'ghost'), el('span', { class: 'muted' }, ['made on the site’s character creator']), file]),
-      msg,
+      characterLoader('made on the site’s character creator'),
     ]);
   }
 
@@ -96,7 +132,10 @@
     else main.appendChild(sheetScreen(s));
   }
 
-  Session.onChange(render);
+  Session.onChange(() => {
+    seatPending();     // a character loaded before joining takes its seat once the room is online
+    render();
+  });
   Bus.on('state:remote', () => render());
   Bus.on('state:changed', () => render());
   Bus.on('session:error', (p) => {
