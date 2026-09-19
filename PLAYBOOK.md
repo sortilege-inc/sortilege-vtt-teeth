@@ -63,4 +63,17 @@ Archive first, then change (Portents' rule).
 Every milestone is proven in the browser by the main session through the real buttons, not
 through the API beneath them (Wyldwolf's `"77" + (-1)` lesson).
 
-*(Sections 2–5 are expanded as their milestones land.)*
+## 6. Deploy is one static origin and one Worker
+
+GitHub Pages serves the site from the repo root (buildless, so what is committed is what runs);
+one Cloudflare Worker with a SQLite Durable Object per room holds the live document; the Worker
+answers only the Pages origin and localhost. `engine/config.js` is the single file a deployment
+edits. Rooms idle out; packs endure.
+
+## 7. Order of work that held up
+
+data gate → shell and panels → sheets → table → sessions → the rest of the books → deploy. Each
+milestone one commit, each proven in the browser through its real controls before the next
+began; the plan's table records the proof line, and the decision log records every call made
+without the owner. Seven milestones in one working day for TEETH; the next system inherits
+`engine/` and `build/` whole and writes `system/<id>/` and its `MODULE_MAPS`.

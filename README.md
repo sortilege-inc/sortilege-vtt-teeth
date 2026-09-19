@@ -7,6 +7,9 @@ copy its shape ([PLAYBOOK.md](PLAYBOOK.md)). Plan, decisions and milestones: [PL
 
 Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessions.
 
+**Live:** https://sortilege-inc.github.io/sortilege-vtt-teeth/ · Worker: `https://sortilege-vtt-teeth.sortilege.workers.dev` ·
+first campaign: `~/Sortilege/Campaigns/2026 TEETH/teeth-campaign-blood-cotillion/` (its own repo).
+
 ## Status
 
 | Milestone | State |
@@ -17,7 +20,7 @@ Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessi
 | M4 — the table (maps, grid, tokens, fog, pings, player view) | **landed** (2026-09-19) |
 | M5 — Worker + rooms: players on their own devices | **landed** (2026-09-19) |
 | M6 — the other books, the Outfit as a shared sheet, Clocks, table rolling | **landed** (2026-09-19) |
-| M7 — deploy, first campaign pack | next |
+| M7 — deployed (Pages + Worker); first campaign pack repo | **landed** (2026-09-19) |
 
 ## Running it
 

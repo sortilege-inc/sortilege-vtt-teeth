@@ -9,7 +9,7 @@ window.VttConfig = {
   // The Worker that holds player sessions (M5). Served from localhost the app talks
   // to `wrangler dev`; deployed, to the URL below. Empty = sessions disabled.
   worker: {
-    deployed: '',
+    deployed: 'https://sortilege-vtt-teeth.sortilege.workers.dev',
     local: 'http://localhost:8787',
   },
 };
