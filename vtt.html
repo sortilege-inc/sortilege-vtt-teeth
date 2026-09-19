@@ -3,27 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TEETH — the table</title>
+<title>TEETH — Table</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&family=Alegreya:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/teeth.css">
 </head>
-<body>
-<aside id="sidebar">
-  <div id="brand" class="brand"></div>
-  <ul id="nav" class="nav"></ul>
-  <div id="window-controls" class="window-controls"></div>
-  <div id="sidebar-foot" class="sidebar-foot"><a href="PLAN.md" class="muted">plan</a></div>
-</aside>
-<main id="main" class="main"></main>
+<body class="vtt">
+<div class="vtt-toolbar" id="vtt-toolbar"></div>
+<div class="vtt-stage" id="vtt-stage">
+  <svg id="map" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
+  <div class="vtt-hint" id="vtt-hint"></div>
+</div>
 
 <script src="engine/config.js"></script>
 <script src="engine/bus.js"></script>
 <script src="engine/ops.js"></script>
 <script src="engine/state.js"></script>
 <script src="engine/render.js"></script>
-<script src="engine/panels.js"></script>
 <script src="data/index.js"></script>
 <script src="data/core.js"></script>
 <script src="data/oneshot-shared.js"></script>
@@ -33,9 +30,7 @@
 <script src="data/moreteeth.js"></script>
 <script src="data/falsekingdom.js"></script>
 <script src="system/teeth/data.js"></script>
-<script src="system/teeth/entity.js"></script>
-<script src="system/teeth/sheet.js"></script>
-<script src="system/teeth/panels.js"></script>
-<script src="engine/app.js"></script>
+<script src="system/teeth/table.js"></script>
+<script src="engine/vtt.js"></script>
 </body>
 </html>

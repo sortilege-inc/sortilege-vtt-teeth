@@ -115,6 +115,13 @@
     else if (mode === 'single' && single !== 'inspector') open('inspector');
   });
 
+  // the table and the player view are separate windows on the same state
+  const wc = document.getElementById('window-controls');
+  if (wc) {
+    wc.appendChild(el('button', { class: 'btn', type: 'button', onclick: () => window.open('vtt.html', CFG.channel + '-table') }, ['Open table']));
+    wc.appendChild(el('button', { class: 'btn ghost', type: 'button', onclick: () => window.open('vtt.html?view=player', CFG.channel + '-player') }, ['Open player view']));
+  }
+
   window.VttApp = { open, render, mode: () => mode };
   render();
 })();

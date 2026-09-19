@@ -14,8 +14,8 @@ Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessi
 | M1 — `build/` generates `data/` from the corpus; two-directional gate | **landed** (2026-09-19) |
 | M2 — engine + TEETH glossary, module tracker, scene panel (Blood Cotillion) | **landed** (2026-09-19) |
 | M3 — sheets, party, dice log, campaign pack | **landed** (2026-09-19) |
-| M4 — VTT | next |
-| M5 — Worker + rooms | — |
+| M4 — the table (maps, grid, tokens, fog, pings, player view) | **landed** (2026-09-19) |
+| M5 — Worker + rooms | next |
 | M6 — remaining modules, Outfit sheet, clocks | — |
 | M7 — deploy, first campaign pack | — |
 
@@ -33,6 +33,14 @@ tracks, ratings, rolls, picks, items, injuries, notes — opens in the Inspector
 **Cast**, **Rules & Books** (search everything with `/`, or browse a book), **Lore** and
 **Campaign** (which modules and books are in play; save / restore the campaign as a pack).
 Everything you tick or type is saved in this browser as you go.
+
+**Open table** puts the current scene's map in its own window (`vtt.html`): grid calibration,
+tokens for the party and the cast (add them from the toolbar; drag to move; right-click to hide,
+resize, rename), pings, circle / line / square effects, fog with reveal rectangles. It follows the
+GM's scene unless pinned. **Open player view** (`vtt.html?view=player`) is the same map with no
+controls, fog opaque and hidden tokens absent — for the TV, or for a player's device once
+sessions exist (M5). Map images live in `assets/maps/`; `system/teeth/table.js` says which scene
+ships with which.
 
 ## Where the content comes from
 

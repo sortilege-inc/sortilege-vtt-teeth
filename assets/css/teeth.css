@@ -225,3 +225,47 @@ details summary { font-family: var(--display); font-size: 1.1rem; cursor: pointe
 .injury-level .injury { width: 100%; }
 .member { display: flex; align-items: flex-start; gap: 0.4rem; margin: 0.4rem 0; }
 .member .card { flex: 1; }
+
+/* ── the table (vtt.html) ───────────────────────────────── */
+body.vtt { display: flex; flex-direction: column; height: 100vh; overflow: hidden; grid-template-columns: none; }
+.vtt-toolbar { display: flex; flex-wrap: wrap; gap: 0.35rem 0.6rem; align-items: center; padding: 0.35rem 0.7rem; background: var(--ink); color: var(--paper); font-size: 0.82rem; flex: none; }
+.vtt-toolbar .group { display: flex; align-items: center; gap: 0.35rem; padding-right: 0.6rem; border-right: 1px solid var(--ink-3); }
+.vtt-toolbar .group.last { border-right: none; margin-left: auto; }
+.vtt-toolbar label { color: var(--paper-3); display: inline-flex; align-items: center; gap: 0.25rem; }
+.vtt-toolbar .muted { color: var(--rule); font-family: var(--sc); letter-spacing: 0.06em; }
+.vtt-toolbar .btn { padding: 0.2rem 0.55rem; font-size: 0.82rem; }
+.vtt-toolbar .btn.ghost { color: var(--paper-3); border-color: var(--ink-3); }
+.vtt-toolbar .btn.ghost:hover, .vtt-toolbar .btn.ghost.active { color: #fff; border-color: var(--blood-2); }
+.vtt-toolbar .btn.active { background: var(--blood); }
+.vtt-num { width: 3.6rem; font-size: 0.8rem; padding: 0.15rem 0.3rem; }
+.vtt-url { max-width: 15rem; font-size: 0.8rem; padding: 0.15rem 0.4rem; }
+.vtt-select { max-width: 14rem; font-size: 0.82rem; padding: 0.15rem 0.3rem; }
+.vtt-stage { flex: 1; min-height: 0; position: relative; background: #2a2622; }
+svg#map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+svg#map.panning { cursor: grabbing; }
+svg#map.tool-active { cursor: crosshair; }
+.grid-line { stroke: rgba(26, 22, 19, 0.35); stroke-width: 1; }
+.fog { fill: #1a1613; opacity: 0.55; }
+body.player .fog { opacity: 1; }
+.token { cursor: pointer; }
+body.player .token { cursor: default; }
+.token .body { fill: #efe6d3; }
+.token text { font-family: var(--display); fill: var(--ink); pointer-events: none; }
+.token .ini { font-weight: 600; }
+.token .label { font-family: var(--serif); fill: #fbf6ea; paint-order: stroke; stroke: #1a1613; stroke-width: 3px; stroke-linejoin: round; }
+.token .pip { fill: var(--blood-2); stroke: #1a1613; stroke-width: 1; }
+.token.selected .ring-outline { stroke: #fbf6ea !important; stroke-dasharray: 6 4; }
+.token.hidden-token .body { stroke-dasharray: 4 4; }
+.token.hidden-token { opacity: 0.45; }
+.effect { fill: rgba(143, 29, 34, 0.18); stroke: var(--blood-2); stroke-width: 2; cursor: pointer; }
+.effect.line { stroke: rgba(181, 52, 58, 0.55); stroke-linecap: round; }
+.effect.selected { stroke: #fbf6ea; stroke-width: 3; }
+.effect.preview { pointer-events: none; stroke-dasharray: 8 6; }
+.ping { fill: none; stroke: #fbf6ea; stroke-width: 4; pointer-events: none; }
+.vtt-hint { position: absolute; left: 0.7rem; bottom: 0.5rem; color: var(--paper-3); font-size: 0.75rem; pointer-events: none; text-shadow: 0 1px 2px #000; }
+.vtt-menu { position: absolute; background: var(--paper); border: 1px solid var(--ink); padding: 0.6rem 0.8rem; min-width: 240px; z-index: 10; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); font-size: 0.85rem; }
+.vtt-menu h4 { margin: 0 0 0.3rem; border: 0; }
+.vtt-menu .row { display: flex; gap: 0.3rem; align-items: center; margin: 0.3rem 0; flex-wrap: wrap; }
+.btn.danger { background: var(--blood); border-color: var(--blood); }
+.window-controls { display: flex; flex-direction: column; gap: 0.35rem; margin: 1rem 0 0; }
+.window-controls .btn { width: 100%; font-family: var(--sc); letter-spacing: 0.05em; }
