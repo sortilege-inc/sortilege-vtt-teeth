@@ -269,3 +269,24 @@ body.player .token { cursor: default; }
 .btn.danger { background: var(--blood); border-color: var(--blood); }
 .window-controls { display: flex; flex-direction: column; gap: 0.35rem; margin: 1rem 0 0; }
 .window-controls .btn { width: 100%; font-family: var(--sc); letter-spacing: 0.05em; }
+
+/* ── sessions and the player's page (play.html) ─────────── */
+.session-controls { margin-top: 1rem; font-size: 0.85rem; color: var(--paper-3); }
+.session-controls .btn { width: 100%; font-family: var(--sc); letter-spacing: 0.05em; }
+.session-controls .chiprow .btn { width: auto; margin: 0; }
+.session-code { display: flex; align-items: center; gap: 0.4rem; font-family: var(--mono); }
+.session-code .chip { margin: 0; color: var(--rule); border-color: var(--ink-3); }
+.session-code .chip.on { color: #9fd08a; border-color: #4f6b3a; }
+.session-url { font-size: 0.7rem; word-break: break-all; color: var(--ink-3); margin: 0.2rem 0; }
+body.play { display: block; }
+.play-head { display: flex; justify-content: space-between; align-items: center; background: var(--ink); color: var(--paper); padding: 0.6rem 1rem; }
+.play-head .brand-title { font-size: 1.4rem; }
+.play-status { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.play-status .chip { margin: 0; color: var(--rule); border-color: var(--ink-3); }
+.play-status .chip.on { color: #9fd08a; border-color: #4f6b3a; }
+.play-main { max-width: 760px; margin: 0 auto; padding: 1rem; }
+.play-card h1 { font-size: 1.8rem; }
+.play-card .card.static { cursor: default; }
+.play-card .card.static .btn { margin-top: 0.4rem; }
+.code-input { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.2em; width: 9rem; }
+.session-error { color: var(--blood); }

@@ -15,8 +15,8 @@ Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessi
 | M2 — engine + TEETH glossary, module tracker, scene panel (Blood Cotillion) | **landed** (2026-09-19) |
 | M3 — sheets, party, dice log, campaign pack | **landed** (2026-09-19) |
 | M4 — the table (maps, grid, tokens, fog, pings, player view) | **landed** (2026-09-19) |
-| M5 — Worker + rooms | next |
-| M6 — remaining modules, Outfit sheet, clocks | — |
+| M5 — Worker + rooms: players on their own devices | **landed** (2026-09-19) |
+| M6 — remaining modules, Outfit sheet, clocks | next |
 | M7 — deploy, first campaign pack | — |
 
 ## Running it
@@ -41,6 +41,28 @@ GM's scene unless pinned. **Open player view** (`vtt.html?view=player`) is the s
 controls, fog opaque and hidden tokens absent — for the TV, or for a player's device once
 sessions exist (M5). Map images live in `assets/maps/`; `system/teeth/table.js` says which scene
 ships with which.
+
+## Sessions — players on their own devices
+
+**Start session** in the sidebar creates a room and shows a code and a join link
+(`play.html?s=CODE`). A player opens it on their phone, claims one of the party's characters,
+and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes; they
+can open the table in player view and move their own token. Everything they do shows up live
+on the GM's page and table; everything the GM does to their character shows up live on theirs.
+They never receive GM notes, hidden tokens or unrevealed fog; they may not change what the
+playbook decides.
+
+How it works: every shared change is a named op (`engine/ops.js`) applied identically in the
+browser and in a `SessionRoom` Durable Object (`worker/`) that holds the campaign's document,
+validates each op by role, and fans it out over WebSockets. One window per browser holds the
+socket; the other windows ride the in-browser bus. No session → nothing leaves the browser.
+No accounts: the join link plus a claim is the whole identity, and the GM can release a
+claim. The room is the live document until the GM ends it or it idles out after 14 days; the
+campaign pack (Campaign panel) is the durable record, and **reseed** pushes this browser's
+campaign into the room after a restore.
+
+Deploy per `worker/README.md`, then set the URL in `engine/config.js`; served from
+`localhost` the app talks to `wrangler dev` on 8787 automatically.
 
 ## Where the content comes from
 
@@ -67,10 +89,10 @@ Gate status from `bash build/build.sh` on 2026-09-19: 94 DSL files, **7 books, 2
 ```
 build/          the generator and its gate
 data/           GENERATED — window.TEETH.books / .entities / .index
-engine/         system-agnostic: bus, ops, state, session, store, layout, panels, VTT, dice log
+engine/         system-agnostic: bus, ops, state, session, panels, the shell, the table, the player's page
 system/teeth/   the TEETH module: sheets, tracks, clocks, the d6 pool roller, TEETH ops
 assets/maps/    the GM's maps (web-sized); assets/art/ portraits and handouts
-worker/         the Cloudflare Worker: SessionRoom Durable Object (M5)
+worker/         the Cloudflare Worker: the SessionRoom Durable Object (deploy separately)
 docs/           notes; PLAN.md is the decision log
 ```
 

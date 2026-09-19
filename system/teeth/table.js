@@ -86,5 +86,14 @@ window.VttSystem = (function () {
     return null;
   }
 
-  return { scenes, currentSceneId, defaultMap, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, MODULE_MAPS };
+  // the player's page
+  function liveSheet(m, opts) {
+    return window.TeethSheet.live(m, opts);
+  }
+  function memberSubtitle(m) {
+    const t = D.entity(m.templateId);
+    return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
+  }
+
+  return { scenes, currentSceneId, defaultMap, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, memberSubtitle, MODULE_MAPS };
 })();

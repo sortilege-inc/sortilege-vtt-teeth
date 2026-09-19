@@ -115,6 +115,42 @@
     else if (mode === 'single' && single !== 'inspector') open('inspector');
   });
 
+  // ── session (players on their own devices) ─────────────────────────
+  const Session = window.VttSession;
+  const sc = document.getElementById('session-controls');
+  function buildSession() {
+    if (!sc || !Session) return;
+    sc.innerHTML = '';
+    const s = Session.current();
+    if (!s.active) {
+      const start = el('button', { class: 'btn ghost', type: 'button' }, ['Start session']);
+      start.disabled = !s.configured;
+      start.title = s.configured ? 'Players join by room code' : 'No Worker URL in engine/config.js';
+      start.addEventListener('click', async () => {
+        start.disabled = true;
+        try {
+          await Session.start();
+        } catch (e) {
+          alert(e.message);
+          start.disabled = false;
+        }
+      });
+      sc.appendChild(start);
+      return;
+    }
+    const url = Session.joinUrl();
+    const copy = el('button', { class: 'btn ghost tiny', type: 'button', onclick: () => navigator.clipboard && navigator.clipboard.writeText(url).then(() => { copy.textContent = 'copied'; setTimeout(() => (copy.textContent = 'copy link'), 1500); }) }, ['copy link']);
+    const end = el('button', { class: 'btn ghost tiny', type: 'button', onclick: () => { if (confirm('End the session? Players are disconnected; your campaign stays here.')) Session.leave(); } }, ['end']);
+    const reseed = el('button', { class: 'btn ghost tiny', type: 'button', title: 'Replace the room\'s document with this browser\'s campaign (after restoring a pack)', onclick: () => { if (confirm('Overwrite the room with this browser\'s campaign?')) Session.reseed(); } }, ['reseed']);
+    sc.appendChild(el('div', { class: 'session-code' }, [el('span', { class: 'chip' + (s.connected ? ' on' : '') }, [s.connected ? 'live' : s.status]), el('b', {}, [s.info.code]), el('span', { class: 'muted' }, [` ${Object.keys(s.claims).length} claimed`])]));
+    sc.appendChild(el('div', { class: 'session-url' }, [url]));
+    sc.appendChild(el('div', { class: 'chiprow' }, [copy, reseed, end]));
+  }
+  if (Session) {
+    Session.onChange(buildSession);
+    buildSession();
+  }
+
   // the table and the player view are separate windows on the same state
   const wc = document.getElementById('window-controls');
   if (wc) {

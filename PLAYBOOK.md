@@ -41,7 +41,13 @@ adapter.
 
 Every change to shared state is a named op applied identically in every window and in the
 room server; ids travel in the args; "if it isn't in OPS it isn't shared". Role rules are a
-table beside the ops; the server filters what a player may *see* with the same module.
+table beside the ops; the server filters what a player may *see* with the same module
+(`playerView`, `forPlayers`). The module is UMD so the Worker imports the very file the
+browser loads — one copy of the rules, and a Node one-liner tests them without a browser.
+
+*TEETH needed:* nothing of its own yet — the engine's ops (party live state, notes, clues,
+maps, clocks, the log) covered a whole one-shot. A system registers extra ops with the same
+`register(name, fn, playerRule, forPlayers)` call.
 
 ## 4. A campaign is an instance, not part of the repo
 

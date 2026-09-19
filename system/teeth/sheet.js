@@ -23,7 +23,11 @@ window.TeethSheet = (function () {
   const Bus = window.VttBus;
 
   const S = () => State.state;
-  const books = () => (window.TeethPanels ? window.TeethPanels.campaignBooks() : null);
+  // the campaign's books, whichever page this sheet is on (the player's page has no panels)
+  const books = () => {
+    const b = (S().campaign && S().campaign.books) || [];
+    return b.length ? b : null;
+  };
 
   // ── the spec of a sheet, from the template's actor chain ──────────
   function actorChain(template) {
@@ -284,8 +288,11 @@ window.TeethSheet = (function () {
 
   function textRows(m, tx) {
     const lines = (m.live.texts || {})[tx.name] || [];
-    // Injury Levels of the book give the boxes ("Level one: 2 boxes")
-    const levels = tx.name === 'Injuries' ? D.byType('Injury Level', books()) : [];
+    // Injury Levels give the boxes ("Level one: 2 boxes") — the character's own book's first
+    // (an Ingenue's are Blood Cotillion's, not the core's), else the campaign's
+    const t = D.entity(m.templateId);
+    const own = tx.name === 'Injuries' && t ? D.byType('Injury Level', [t.book]) : [];
+    const levels = tx.name === 'Injuries' ? (own.length ? own : D.byType('Injury Level', books())) : [];
     const rows = levels.length
       ? levels.map((lv) => {
           const n = D.propValue(lv, 'Boxes') || 0;
