@@ -18,6 +18,18 @@ inside `ENTRIES` blocks, `CHOICES` rows, hash-bound `LIST OF #hash ^"Type"` bodi
 quotes in caret names, and `.lore` Markdown as a checked source. Three parser leaks were found
 by the gate, not by reading output — that is what it is for.
 
+## 1b. Derive the sheet from the system's BASE
+
+A character sheet is the ACTOR type's property declarations, read at runtime: an `INTEGER MIN
+0 MAX 9` is a track of nine boxes, a `LIST OF ^"Action Rating"` is a rating row per axis, a
+`^"Vice" ^"Vice"` is a pick from the template's CHOICES or from every Vice in the books. The
+TEMPLATE fixes the starting values. `system/teeth/sheet.js` is ~400 lines and renders six
+different character types from six different books without naming one of them.
+
+*TEETH needed:* the EXTENDS chain (a Hogman is a Hunter), "Starting Coin" seeding the Coin
+track, Injury Levels supplying the number of boxes per level, and the book's own `Roll` entity
+supplying the outcome ladder (so the module's wording wins over the core's).
+
 ## 2. Three layers that do not know each other's names
 
 `engine/` (state, sync, layout, VTT, dice log) · `system/<id>/` (what a sheet is, what a roll

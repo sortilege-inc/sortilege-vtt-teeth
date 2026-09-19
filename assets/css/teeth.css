@@ -190,3 +190,38 @@ details summary { font-family: var(--display); font-size: 1.1rem; cursor: pointe
   .navbtn.active { border-bottom-color: var(--blood-2); }
   .sidebar-foot { display: none; }
 }
+
+/* ── sheets ──────────────────────────────────────────────── */
+.sheet-head .meta { display: flex; gap: 0.5rem; font-size: 0.85rem; margin-bottom: 0.4rem; }
+.tagline { font-style: italic; margin: 0.15rem 0; }
+.sheet-text summary { font-family: var(--sc); font-size: 0.85rem; letter-spacing: 0.05em; cursor: pointer; color: var(--ink-2); }
+.track { margin: 0.4rem 0 0.6rem; }
+.track-head { display: flex; justify-content: space-between; font-size: 0.85rem; }
+.track-name { font-family: var(--sc); letter-spacing: 0.05em; }
+.boxes { display: flex; flex-wrap: wrap; gap: 3px; margin: 0.15rem 0; }
+.box { width: 18px; height: 18px; border: 1.5px solid var(--ink); background: #fbf6ea; padding: 0; cursor: pointer; }
+.box.on { background: var(--ink); }
+.box:hover { border-color: var(--blood); }
+.boxes.diamonds .box { width: 14px; height: 14px; transform: rotate(45deg); margin: 2px 4px; }
+.threshold { font-size: 0.85rem; color: var(--blood); font-style: italic; }
+.counter { display: flex; align-items: center; gap: 0.5rem; margin: 0.3rem 0; }
+.counter .btn.tiny { margin: 0; }
+.rating { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.6rem; padding: 0.15rem 0; }
+.btn.roll { font-family: var(--sc); letter-spacing: 0.05em; }
+.roll-log { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.88rem; }
+.roll-line { border-left: 3px solid var(--rule); padding: 0.2rem 0.6rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.roll-line.band-multiple6, .roll-line.band-6 { border-left-color: var(--moss); }
+.roll-line.band-13 { border-left-color: var(--blood); }
+.roll-who { font-family: var(--sc); font-size: 0.8rem; letter-spacing: 0.05em; color: var(--ink-3); }
+.roll-dice { display: inline-flex; gap: 3px; }
+.die { display: inline-block; min-width: 1.3rem; text-align: center; border: 1px solid var(--ink); background: #fbf6ea; font-family: var(--mono); font-size: 0.8rem; padding: 0 0.15rem; }
+.die.dropped { opacity: 0.4; text-decoration: line-through; }
+.roll-text { flex-basis: 100%; font-style: italic; color: var(--ink-2); }
+.checklist .check { display: flex; gap: 0.5rem; align-items: baseline; padding: 0.25rem 0; border-bottom: 1px dotted var(--rule); }
+.check-text { font-size: 0.88rem; color: var(--ink-2); }
+.pick { font: inherit; font-size: 0.9rem; background: #fbf6ea; border: 1px solid var(--rule); padding: 0.1rem 0.5rem; cursor: pointer; }
+.pick.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.injury-level { display: grid; grid-template-columns: minmax(8rem, 35%) 1fr 1fr; gap: 0.4rem; align-items: center; padding: 0.2rem 0; }
+.injury-level .injury { width: 100%; }
+.member { display: flex; align-items: flex-start; gap: 0.4rem; margin: 0.4rem 0; }
+.member .card { flex: 1; }

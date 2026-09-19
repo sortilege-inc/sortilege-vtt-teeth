@@ -158,6 +158,9 @@
         if (!e) return container.appendChild(el('div', { class: 'empty' }, ['Entity not found: ' + sel.id]));
         const sheet = window.TeethSheet && window.TeethSheet.render(e);
         container.appendChild(sheet || E.render(e));
+      } else if (sel.kind === 'party') {
+        const m = window.TeethSheet.member(sel.id);
+        container.appendChild(m ? window.TeethSheet.live(m) : el('div', { class: 'empty' }, ['That character is no longer in the party.']));
       } else if (sel.kind === 'scene') {
         const s = D.scene(sel.moduleId, sel.sceneId);
         container.appendChild(s ? el('div', {}, [el('h2', {}, [s.name]), paragraphs(s.desc)]) : el('div', { class: 'empty' }, ['Scene not found.']));
@@ -166,6 +169,70 @@
       }
     };
     ctx.on('select', draw);
+    // a live sheet changes under us (its own controls, another window, a player)
+    ctx.on('state:changed', (p, meta) => {
+      const sel = Panels.selection();
+      if (sel && sel.kind === 'party' && !(document.activeElement && /TEXTAREA|INPUT/.test(document.activeElement.tagName) && container.contains(document.activeElement))) draw();
+    });
+    ctx.on('state:remote', draw);
+    draw();
+  }
+
+  // ── Party ──────────────────────────────────────────────────────────
+  function renderParty(container, ctx) {
+    const draw = () => {
+      container.innerHTML = '';
+      const party = S().party || [];
+      const templates = D.all(campaignBooks()).filter((e) => e.form === 'TEMPLATE');
+      const pick = el('select', { class: 'scope' }, [el('option', { value: '' }, ['Add a character from a playbook…'])]);
+      let lastBook = null;
+      templates.forEach((t) => {
+        if (t.book !== lastBook) {
+          lastBook = t.book;
+          pick.appendChild(el('option', { disabled: true }, ['— ' + (D.book(t.book) || {}).title]));
+        }
+        pick.appendChild(el('option', { value: t.id }, [t.name + (t.type ? ' · ' + t.type : '')]));
+      });
+      pick.addEventListener('change', () => {
+        if (!pick.value) return;
+        const t = D.entity(pick.value);
+        const name = prompt('Character name', t.name);
+        pick.value = '';
+        if (name == null) return;
+        const m = window.TeethSheet.newMember(t.id, name);
+        State.commit('addPartyMember', [m]);
+        Panels.select({ kind: 'party', id: m.id });
+      });
+      container.appendChild(pick);
+      if (!party.length) container.appendChild(el('div', { class: 'empty' }, ['No one in the party yet.']));
+      party.forEach((m) => {
+        const t = D.entity(m.templateId);
+        const tracks = Object.keys(m.live.tracks || {}).map((k) => `${k} ${m.live.tracks[k]}`).join(' · ');
+        container.appendChild(el('div', { class: 'member' }, [
+          el('button', { class: 'card', type: 'button', onclick: () => Panels.select({ kind: 'party', id: m.id }) }, [
+            el('div', { class: 'card-name' }, [m.name]),
+            el('div', { class: 'card-sub' }, [t ? t.name + (t.type ? ' · ' + t.type : '') : m.templateId]),
+            el('div', { class: 'card-desc' }, [tracks]),
+          ]),
+          button('remove', () => { if (confirm(`Remove ${m.name} from the party?`)) State.commit('removePartyMember', [m.id]); }, 'ghost tiny'),
+        ]));
+      });
+    };
+    ctx.on('state:changed', draw);
+    ctx.on('state:remote', draw);
+    draw();
+  }
+
+  // ── Log ────────────────────────────────────────────────────────────
+  function renderLog(container, ctx) {
+    const draw = () => {
+      container.innerHTML = '';
+      const log = (S().log || []).slice().reverse();
+      if (!log.length) return container.appendChild(el('div', { class: 'empty' }, ['No rolls yet.']));
+      log.forEach((x) => container.appendChild(x.kind === 'roll' ? window.TeethSheet.rollLine(x) : el('div', { class: 'roll-line' }, [x.text || JSON.stringify(x)])));
+    };
+    ctx.on('state:changed', draw);
+    ctx.on('state:remote', draw);
     draw();
   }
 
@@ -307,6 +374,8 @@
   Panels.register('tracker', { label: 'Module', render: renderTracker });
   Panels.register('scene', { label: 'Scene', render: renderScene });
   Panels.register('inspector', { label: 'Inspector', render: renderInspector });
+  Panels.register('party', { label: 'Party', render: renderParty });
+  Panels.register('log', { label: 'Dice log', render: renderLog });
   Panels.register('cast', { label: 'Cast', render: renderCast });
   Panels.register('rules', { label: 'Rules & Books', render: renderRules });
   Panels.register('lore', { label: 'Lore', render: renderLore });
