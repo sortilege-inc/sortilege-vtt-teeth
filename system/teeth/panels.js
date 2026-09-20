@@ -54,7 +54,13 @@
       D.modules().forEach((m) => pick.appendChild(el('option', { value: m.id, selected: mods[0] === m.id || null }, [m.arcs[0].name])));
       pick.addEventListener('change', () => {
         if (!pick.value) return;
-        State.commit('setCampaign', [{ modules: [pick.value], books: booksFor(pick.value) }]);
+        // the default campaign is named for the module in play; a campaign the GM named keeps its name
+        const c = S().campaign;
+        const moduleNames = D.modules().flatMap((m) => [m.title, m.arcs[0].name]);
+        const follows = c.id === 'default' || !c.name || moduleNames.indexOf(c.name) !== -1;
+        const patch = { modules: [pick.value], books: booksFor(pick.value) };
+        if (follows) patch.name = D.book(pick.value).title;
+        State.commit('setCampaign', [patch]);
         Bus.emit('scene:changed', { moduleId: pick.value, sceneId: Sys().currentSceneId() });
       });
       container.appendChild(el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, ['Module']), el('div', { class: 'prop-v' }, [pick])]));

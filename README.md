@@ -48,7 +48,8 @@ from then on it is part of the party, so **Save pack** carries it and **Restore 
 back, and each one can be downloaded again from there.
 
 **The GM's table** (`gm/`) opens on a *Blood Cotillion* campaign: **Module** (a picker for
-the module in play — *Night of the Hogmen*, *Blood Cotillion*, *Stranger and Stranger* — then its
+the module in play — *Night of the Hogmen*, *Blood Cotillion*, *Stranger and Stranger*; the default
+campaign takes the module's name, one you have named keeps its own — then its
 scenes by phase, tick as you go; drag a scene to arrange it within or across phases, and the
 order, saved in the campaign, is the order the Scene panel pages through) · **Scene** (the book's text, read-aloud, clues you reveal,
 resolutions, GM guidance, your notes) · **Inspector** (whatever you last clicked). The sidebar
