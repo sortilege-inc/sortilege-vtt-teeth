@@ -50,6 +50,46 @@ window.VttRender = (function () {
     return node;
   }
 
+  // Drag-to-reorder over plain DOM: items (opts.item selector) move within and between lists
+  // (opts.list selector, default: the root) as the pointer passes; opts.onDrop runs once the
+  // drop lands, and reads the new order off the DOM. Pointer devices only (HTML5 drag events).
+  function dragSort(root, opts) {
+    let dragging = null;
+    root.querySelectorAll(opts.item).forEach((it) => {
+      it.draggable = true;
+    });
+    root.addEventListener('dragstart', (e) => {
+      const it = e.target.closest && e.target.closest(opts.item);
+      if (!it) return;
+      dragging = it;
+      it.classList.add('dragging');
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', it.dataset.id || '');
+      }
+    });
+    root.addEventListener('dragover', (e) => {
+      if (!dragging) return;
+      e.preventDefault();
+      const it = e.target.closest && e.target.closest(opts.item);
+      if (it && it !== dragging) {
+        const r = it.getBoundingClientRect();
+        const after = e.clientY - r.top > r.height / 2;
+        it.parentElement.insertBefore(dragging, after ? it.nextSibling : it);
+        return;
+      }
+      const list = opts.list ? e.target.closest && e.target.closest(opts.list) : root;
+      if (list && !it && !list.contains(dragging)) list.appendChild(dragging);
+    });
+    root.addEventListener('drop', (e) => e.preventDefault());
+    root.addEventListener('dragend', () => {
+      if (!dragging) return;
+      dragging.classList.remove('dragging');
+      dragging = null;
+      if (opts.onDrop) opts.onDrop();
+    });
+  }
+
   function debounce(fn, ms) {
     let t = null;
     return function () {
@@ -59,5 +99,5 @@ window.VttRender = (function () {
     };
   }
 
-  return { el, esc, paragraphs, chip, button, clear, debounce };
+  return { el, esc, paragraphs, chip, button, clear, debounce, dragSort };
 })();

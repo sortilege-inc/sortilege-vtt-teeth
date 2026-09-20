@@ -11,6 +11,7 @@
 //   party     [ { id, templateId, name, live:{…}, notes, playerNotes } ]
 //   maps      { [mapId]: { image, w, h, grid, fog, tokens, effects } }   a shipped map's id, or a scene id
 //   table     { map: mapId }                                             what the table is showing
+//   order     { scenes: { [moduleId]: [{ name, scenes }] }, cast: { [moduleId]: [ids] } }   the GM's arrangement
 //   clocks    [ { id, name, segments, filled, sceneId, visible } ]
 //   log       [ { at, kind, text, memberId } ]
 //   ui        { … }   per-browser only, never shared, never exported
@@ -33,6 +34,7 @@ window.VttState = (function () {
       party: [],
       maps: {},
       table: {},
+      order: {},
       clocks: [],
       log: [],
       ui: {},

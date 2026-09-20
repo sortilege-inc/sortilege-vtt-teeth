@@ -629,10 +629,10 @@
     // one entry per map, in scene order: a scene's floors, or the scene itself when it has no map
     const mapSel = el('select', { class: 'vtt-select' });
     const shipped = Sys.maps();
-    scenes().forEach((sc, i) => {
+    scenes().forEach((sc) => {
       const ms = shipped.filter((m) => m.sceneId === sc.id);
-      if (!ms.length) mapSel.appendChild(el('option', { value: sc.id, selected: sc.id === mapId || null }, [`${i + 1}. ${sc.name}`]));
-      ms.forEach((m) => mapSel.appendChild(el('option', { value: m.id, selected: m.id === mapId || null }, [`${i + 1}. ${sc.name} · ${m.name}`])));
+      if (!ms.length) mapSel.appendChild(el('option', { value: sc.id, selected: sc.id === mapId || null }, [sc.name]));
+      ms.forEach((m) => mapSel.appendChild(el('option', { value: m.id, selected: m.id === mapId || null }, [`${sc.name} · ${m.name}`])));
     });
     const followBox = el('input', { type: 'checkbox', checked: follow || null });
     mapSel.addEventListener('change', () => {

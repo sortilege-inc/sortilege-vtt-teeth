@@ -189,6 +189,19 @@ player ticked Stress to 2; **Download my character** produced `bartholomew-crane
 with Stress 2, the player's own note, the file's source, no `preview` — and an empty GM-notes
 field, while the GM's copy still held the note.
 
+**Module picker, drag arrangement (2026-09-20, owner's ask):** decisions 34–35. Proof on
+localhost through the real controls: the tracker's picker listed the three modules; choosing
+*Night of the Hogmen* set `modules: [hogmen]`, `books: [core, oneshot-shared, hogmen]`, and the
+tracker showed its 15 scenes in three phases with no numbers and a grip on each row; dragging
+*Calamity Strikes* to the top of its phase and *Journey To The Lone Church* into the first phase
+changed the DOM, the shared `order.scenes.hogmen` (7 / 7 / 1) and `VttSystem.pages`; the Scene
+panel's Next followed the new order (found a page-identity bug there and fixed it); switching back
+to *Blood Cotillion* left Hogmen's arrangement in place and Cotillion's untouched; dragging
+*Wilfrum Kelmorton* to the front of Cotillion's 28 cast members reordered the cards, the shared
+`order.cast.cotillion` and the table's token list; the table's map list read *The Manor Itself ·
+Middle Floor* with no numbers. Six Node assertions: players receive but cannot send the
+arrangement. Worker redeployed (version 40d46430) for the new shared key.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -222,6 +235,8 @@ field, while the GM's copy still held the note.
 | 31 | A player may bring their own character: the claim screen's **Load my character file…** commits `addPartyMember` and claims it. The room admits that op from a player — even one who has not claimed yet (`opts.unclaimed`) — only for a member carrying `source.kind === 'file'` (a character file); every other op still needs a claimed character, and the GM's notes never travel. Found and fixed alongside: the op wrote clue keys with a NUL separator while the Scene panel read `scene::clue`, so a revealed clue did not survive a redraw; both now use `::` | Owner's ask 2026-09-19. The rule is the narrowest that lets a file in. |
 | 32 | The player's character file can be loaded before joining: it waits (in that tab's sessionStorage, so a reload keeps it) and takes its seat — `addPartyMember` + claim — the first time the session reports online without a claimed character. One loader serves the join and claim screens | Owner's ask 2026-09-19. |
 | 33 | The player's sheet has **Download my character**: the party member as the player holds it now — live tracks, picks, their notes — as a character file; the GM's notes are not in the player's copy, so they cannot leak into it. A file downloaded here loads again on the join screen | Owner's ask 2026-09-19. The character belongs to the player; the file is how they keep it. |
+| 34 | The module in play is picked at the top of the Module tracker (every book with an ARC); picking one sets `campaign.modules` to it and its books to the core, the shared types and itself, keeping the campaign's other reference books. The Campaign panel's checkboxes remain for several modules at once | Owner could not find how to run Night of the Hogmen (2026-09-20): the control was three panels away. Progress and current scene are per module already, so switching loses nothing. |
+| 35 | Scenes carry no numbers. The GM drags a scene within or between phases in the tracker, and the cast into any order; the arrangement is shared state (`order.scenes[module]` = phases with scene ids, `order.cast[module]` = ids) and so in the pack, and every page reads it (`VttSystem.pages/cast`): the Scene panel's Previous / Next, the table's map list, the token list. A scene the arrangement does not name keeps the book's phase; ids not listed follow in the book's order | Owner's ask 2026-09-20. Plain HTML5 drag (`VttRender.dragSort`), the order read off the DOM on drop — no library. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

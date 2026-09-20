@@ -32,9 +32,47 @@ window.VttSystem = (function () {
 
   const modules = () => (S().campaign.modules || []).filter((id) => D.arc(id));
 
+  // A module's scenes in the GM's arrangement (state.order.scenes, set by dragging in the
+  // tracker), else the book's: [{ phase, scene }]. A scene the arrangement does not name keeps
+  // the book's phase, after the arranged ones; a phase the arrangement does not name comes
+  // where the book puts it.
+  function pages(moduleId) {
+    const src = D.pages(moduleId);
+    const arranged = ((S().order || {}).scenes || {})[moduleId];
+    if (!arranged || !arranged.length) return src;
+    const byId = {};
+    src.forEach((p) => (byId[p.scene.id] = p));
+    const placed = new Set();
+    const groups = arranged.map((g) => ({ name: g.name, pages: (g.scenes || []).filter((id) => byId[id] && !placed.has(id)).map((id) => (placed.add(id), { phase: g.name, scene: byId[id].scene })) }));
+    src.forEach((p) => {
+      if (placed.has(p.scene.id)) return;
+      let g = groups.find((x) => x.name === p.phase);
+      if (!g) {
+        g = { name: p.phase, pages: [] };
+        // where the book puts this phase: after the last group whose phase the book lists earlier
+        const bookPhases = [];
+        src.forEach((q) => bookPhases.indexOf(q.phase) === -1 && bookPhases.push(q.phase));
+        const before = groups.filter((x) => bookPhases.indexOf(x.name) !== -1 && bookPhases.indexOf(x.name) < bookPhases.indexOf(p.phase));
+        groups.splice(before.length ? groups.indexOf(before[before.length - 1]) + 1 : groups.length, 0, g);
+      }
+      g.pages.push(p);
+    });
+    return groups.flatMap((g) => g.pages);
+  }
+
+  // A module's cast in the GM's order (state.order.cast), unlisted ones after, as the book has them.
+  function cast(moduleId) {
+    const src = D.cast(moduleId);
+    const ids = ((S().order || {}).cast || {})[moduleId];
+    if (!ids || !ids.length) return src;
+    const rank = {};
+    ids.forEach((id, i) => (rank[id] = i));
+    return src.map((e, i) => ({ e, k: rank[e.id] != null ? rank[e.id] : ids.length + i })).sort((a, b) => a.k - b.k).map((x) => x.e);
+  }
+
   function scenes() {
     const out = [];
-    modules().forEach((moduleId) => D.pages(moduleId).forEach((p) => out.push({ id: p.scene.id, name: p.scene.name, moduleId })));
+    modules().forEach((moduleId) => pages(moduleId).forEach((p) => out.push({ id: p.scene.id, name: p.scene.name, moduleId })));
     return out;
   }
 
@@ -42,17 +80,17 @@ window.VttSystem = (function () {
     const m = modules()[0];
     if (!m) return null;
     const cur = (S().current || {})[m];
-    const pages = D.pages(m);
-    return (pages.find((p) => p.scene.id === cur) || pages[0] || { scene: {} }).scene.id || null;
+    const pg = pages(m);
+    return (pg.find((p) => p.scene.id === cur) || pg[0] || { scene: {} }).scene.id || null;
   }
 
   // The shipped maps in play, in scene order: [{ id, name, sceneId, moduleId, image, w, h, grid, legend }]
   function maps() {
     const out = [];
     modules().forEach((moduleId) => {
-      const pages = D.pages(moduleId);
+      const pg = D.pages(moduleId);
       (MODULE_MAPS[moduleId] || []).forEach((d) => {
-        const page = pages.find((p) => p.scene.name === d.scene);
+        const page = pg.find((p) => p.scene.name === d.scene);
         if (page) out.push(Object.assign({}, d, { sceneId: page.scene.id, moduleId }));
       });
     });
@@ -91,8 +129,8 @@ window.VttSystem = (function () {
     const party = (S().party || []).map((m) => ({ id: 'tk-' + m.id, label: m.name, kind: 'party', owner: m.id, ref: m.id }));
     if (party.length) groups.push({ label: 'Party', items: party });
     modules().forEach((moduleId) => {
-      const cast = D.cast(moduleId).map((e) => ({ label: e.name, kind: 'cast', ref: e.id }));
-      if (cast.length) groups.push({ label: (D.arc(moduleId) || {}).name || moduleId, items: cast });
+      const people = cast(moduleId).map((e) => ({ label: e.name, kind: 'cast', ref: e.id }));
+      if (people.length) groups.push({ label: (D.arc(moduleId) || {}).name || moduleId, items: people });
     });
     return groups;
   }
@@ -136,5 +174,5 @@ window.VttSystem = (function () {
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
 })();

@@ -135,7 +135,13 @@ input.search { width: 100%; }
 .progress .bar { position: absolute; inset: 0 auto 0 0; background: var(--blood); opacity: 0.35; }
 .progress span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--sc); letter-spacing: 0.06em; }
 .phase { font-family: var(--sc); font-size: 0.78rem; letter-spacing: 0.08em; color: var(--ink-3); margin: 0.7rem 0 0.2rem; border-bottom: 1px solid var(--rule); }
-.scene-row { display: flex; align-items: baseline; gap: 0.4rem; padding: 0.15rem 0; }
+.scene-row { display: flex; align-items: baseline; gap: 0.4rem; padding: 0.15rem 0; cursor: grab; }
+.scene-row .grip { color: var(--rule); font-size: 0.8rem; letter-spacing: -0.15em; user-select: none; }
+.scene-row:hover .grip { color: var(--ink-3); }
+.scene-list { min-height: 0.8rem; }
+.dragging { opacity: 0.4; }
+.module-pick { max-width: 100%; }
+.cast-list .card { cursor: grab; }
 .scene-row .scene-link { font: inherit; background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink); text-align: left; flex: 1; }
 .scene-row.current .scene-link { color: var(--blood); font-weight: 600; }
 .scene-row.done .scene-link { color: var(--ink-3); text-decoration: line-through; }

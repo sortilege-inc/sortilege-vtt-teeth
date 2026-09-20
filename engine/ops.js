@@ -79,7 +79,7 @@
   }
 
   // ── the engine's own ops ─────────────────────────────────────────
-  shared(['current', 'progress', 'clues', 'party', 'maps', 'table', 'clocks', 'log', 'campaign']);
+  shared(['current', 'progress', 'clues', 'party', 'maps', 'table', 'clocks', 'log', 'campaign', 'order']);
 
   function bag(s, key) {
     if (!s[key]) s[key] = {};
@@ -91,6 +91,16 @@
   });
   register('setCurrentScene', (s, moduleId, sceneId) => {
     bag(s, 'current')[moduleId] = sceneId;
+  });
+  // the GM's arrangement of a module: scenes grouped into phases, in their order; the cast in
+  // its order. Ids not listed keep the book's place (system/teeth/table.js resolves).
+  //   order.scenes[moduleId] = [{ name: phaseName, scenes: [sceneId…] }…]
+  //   order.cast[moduleId]   = [entityId…]
+  register('setSceneOrder', (s, moduleId, phases) => {
+    bag(bag(s, 'order'), 'scenes')[moduleId] = phases;
+  });
+  register('setCastOrder', (s, moduleId, ids) => {
+    bag(bag(s, 'order'), 'cast')[moduleId] = ids;
   });
   register('setSceneDone', (s, moduleId, sceneId, done) => {
     const m = bag(bag(s, 'progress'), moduleId);

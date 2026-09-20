@@ -2,7 +2,7 @@
 // Cast, Rules (glossary + book browser), Lore, Campaign. Registered into the
 // engine's registry; the shell decides where they show.
 (function () {
-  const { el, paragraphs, chip, button, debounce } = window.VttRender;
+  const { el, paragraphs, chip, button, debounce, dragSort } = window.VttRender;
   const D = window.TeethData;
   const E = window.TeethEntity;
   const State = window.VttState;
@@ -10,6 +10,7 @@
   const Panels = window.VttPanels;
 
   const S = () => State.state;
+  const Sys = () => window.VttSystem;            // the table adapter: the GM's arrangement of scenes and cast
   const campaignModules = () => (S().campaign.modules || []).filter((id) => D.arc(id));
   const campaignBooks = () => {
     const b = S().campaign.books || [];
@@ -18,7 +19,7 @@
 
   // ── current scene ──────────────────────────────────────────────────
   function currentScene(moduleId) {
-    const pages = D.pages(moduleId);
+    const pages = Sys().pages(moduleId);
     if (!pages.length) return null;
     const cur = (S().current || {})[moduleId];
     return pages.find((p) => p.scene.id === cur) || pages[0];
@@ -34,37 +35,62 @@
   }
 
   // ── Module tracker ─────────────────────────────────────────────────
+  // The books a module plays with: the core, the one-shots' shared types, itself — the campaign's
+  // other books stay ticked.
+  function booksFor(moduleId) {
+    const b = D.book(moduleId);
+    const own = b && b.kind === 'one-shot' ? ['core', 'oneshot-shared', moduleId] : [moduleId];
+    const others = (S().campaign.books || []).filter((id) => !D.arc(id) || id === moduleId);
+    return own.concat(others.filter((id) => own.indexOf(id) === -1));
+  }
+
   function renderTracker(container, ctx) {
     const draw = () => {
       container.innerHTML = '';
       const mods = campaignModules();
+      // which module is being run: any book with an ARC (Campaign lets several be in play at once)
+      const pick = el('select', { class: 'scope module-pick', title: 'The module in play' });
+      if (!mods.length) pick.appendChild(el('option', { value: '', selected: true }, ['Pick a module to run…']));
+      D.modules().forEach((m) => pick.appendChild(el('option', { value: m.id, selected: mods[0] === m.id || null }, [m.arcs[0].name])));
+      pick.addEventListener('change', () => {
+        if (!pick.value) return;
+        State.commit('setCampaign', [{ modules: [pick.value], books: booksFor(pick.value) }]);
+        Bus.emit('scene:changed', { moduleId: pick.value, sceneId: Sys().currentSceneId() });
+      });
+      container.appendChild(el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, ['Module']), el('div', { class: 'prop-v' }, [pick])]));
       if (!mods.length) {
-        container.appendChild(el('div', { class: 'empty' }, ['No module in play. Open the Campaign panel and enable one.']));
+        container.appendChild(el('div', { class: 'empty' }, ['No module in play yet. Pick one above; the Campaign panel can put several in play.']));
         return;
       }
       mods.forEach((moduleId) => {
         const arc = D.arc(moduleId);
-        const pages = D.pages(moduleId);
+        const pages = Sys().pages(moduleId);
         const done = pages.filter((p) => progress(moduleId, p.scene.id).done).length;
         const cur = currentScene(moduleId);
         const wrap = el('div', { class: 'tracker' }, [
           el('h3', {}, [arc.name]),
           el('div', { class: 'progress' }, [el('div', { class: 'bar', style: `width:${pages.length ? Math.round((100 * done) / pages.length) : 0}%` }), el('span', {}, [`${done} / ${pages.length} scenes`])]),
         ]);
-        let phase = null;
-        pages.forEach((p, i) => {
-          if (p.phase !== phase) {
-            phase = p.phase;
-            wrap.appendChild(el('div', { class: 'phase' }, [phase]));
+        // phases as drop lists; a scene row is dragged within or between them
+        let group = null;
+        pages.forEach((p) => {
+          if (!group || group.dataset.phase !== p.phase) {
+            group = el('div', { class: 'phase-group', 'data-phase': p.phase }, [el('div', { class: 'phase' }, [p.phase]), el('div', { class: 'scene-list' })]);
+            wrap.appendChild(group);
           }
           const st = progress(moduleId, p.scene.id);
-          const row = el('div', { class: 'scene-row' + (cur && cur.scene.id === p.scene.id ? ' current' : '') + (st.done ? ' done' : '') }, [
+          const row = el('div', { class: 'scene-row' + (cur && cur.scene.id === p.scene.id ? ' current' : '') + (st.done ? ' done' : ''), 'data-id': p.scene.id, title: 'Drag to arrange' }, [
+            el('span', { class: 'grip', 'aria-hidden': 'true' }, ['⋮⋮']),
             el('input', { type: 'checkbox', checked: st.done || null, title: 'Done', onchange: (ev) => State.commit('setSceneDone', [moduleId, p.scene.id, ev.target.checked]) }),
-            el('button', { class: 'scene-link', type: 'button', onclick: () => goTo(moduleId, p.scene.id) }, [`${i + 1}. ${p.scene.name}`]),
+            el('button', { class: 'scene-link', type: 'button', onclick: () => goTo(moduleId, p.scene.id) }, [p.scene.name]),
             p.scene.type ? chip(p.scene.type, { class: 'chip type-' + p.scene.type.toLowerCase() }) : null,
           ]);
-          wrap.appendChild(row);
+          group.querySelector('.scene-list').appendChild(row);
         });
+        dragSort(wrap, { item: '.scene-row', list: '.scene-list', onDrop: () => {
+          const phases = Array.from(wrap.querySelectorAll('.phase-group')).map((g) => ({ name: g.dataset.phase, scenes: Array.from(g.querySelectorAll('.scene-row')).map((r) => r.dataset.id) }));
+          State.commit('setSceneOrder', [moduleId, phases]);
+        } });
         container.appendChild(wrap);
       });
     };
@@ -88,8 +114,8 @@
         container.appendChild(el('div', { class: 'empty' }, ['No scene — enable a module in the Campaign panel.']));
         return;
       }
-      const pages = D.pages(moduleId);
-      const idx = pages.indexOf(page);
+      const pages = Sys().pages(moduleId);
+      const idx = pages.findIndex((p) => p.scene.id === page.scene.id);   // by id: the arranged pages are fresh objects each call
       const s = page.scene;
       const st = progress(moduleId, s.id);
       const nav = el('div', { class: 'scene-nav' }, [
@@ -316,13 +342,25 @@
 
   // ── Cast ───────────────────────────────────────────────────────────
   function renderCast(container, ctx) {
+    const draw = () => drawCast(container);
+    ctx.on('state:changed', draw);
+    ctx.on('state:remote', draw);
+    draw();
+  }
+  function drawCast(container) {
     container.innerHTML = '';
     const mods = campaignModules();
     if (!mods.length) return container.appendChild(el('div', { class: 'empty' }, ['No module in play.']));
     mods.forEach((moduleId) => {
-      const people = D.cast(moduleId);
-      container.appendChild(el('h3', {}, [D.arc(moduleId).name, el('span', { class: 'muted' }, [` · ${people.length}`])]));
-      container.appendChild(el('div', { class: 'cards' }, people.map((p) => E.card(p))));
+      const people = Sys().cast(moduleId);
+      container.appendChild(el('h3', {}, [D.arc(moduleId).name, el('span', { class: 'muted' }, [` · ${people.length} · drag to arrange`])]));
+      const list = el('div', { class: 'cards cast-list' }, people.map((p) => {
+        const c = E.card(p);
+        c.dataset.id = p.id;
+        return c;
+      }));
+      dragSort(list, { item: '.card', onDrop: () => State.commit('setCastOrder', [moduleId, Array.from(list.querySelectorAll('.card')).map((c) => c.dataset.id)]) });
+      container.appendChild(list);
     });
   }
 
