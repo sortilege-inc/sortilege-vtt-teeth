@@ -72,12 +72,18 @@ system's `MODULE_MAPS` lists them per scene with, where the book has one, the co
 is the map's key — shown to the GM verbatim, never drawn on the map, never sent to players. A system registers extra ops with the same
 `register(name, fn, playerRule, forPlayers)` call.
 
-## 4. A campaign is an instance, not part of the repo
+## 4. A campaign is an instance: a fork of its system's VTT
 
-The repo is the engine and the published books. A campaign is a **pack** — `campaign.json` +
-dated snapshots — kept elsewhere (its own repo). The live room is the truth during play; the
-pack is the durable record: save writes the room back into it, restore seeds a room from it.
-Archive first, then change (Portents' rule).
+The VTT repo is the engine and the published books. A campaign that grows past a pack — its own
+NPCs and house rules, its own pages, its own site — is an **instance**: a repo that forks the VTT,
+merges upstream (never rebases), owns only `campaign/` and a few per-deployment root files
+(`merge=ours`), and adds itself through a hook — a DSL layer built through the books' gate, site
+tabs, GM panes, a seed for its arc, a gated Notes document. The live room is the truth during
+play; the pack is the durable record. Archive first, then change (Portents' rule).
+
+The full guide — the boundary, where each kind of thing goes, standing one up, deploying it — is
+[`INSTANCES.md`](INSTANCES.md), proven by the first instance (Portents & Fortunes, on the L5R5e
+VTT). A VTT gets the hook ported into its `engine/` and `build/` before anything forks it.
 
 ## 5. Verify through the control the GM will use
 
