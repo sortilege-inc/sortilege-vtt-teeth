@@ -17,7 +17,10 @@ window.VttPanels = (function () {
   const ORDER = [];
   let current = null;
 
+  // an instance may leave panels out (VttConfig.hidePanes: ids)
+  const HIDDEN = ((window.VttConfig || {}).hidePanes || []).slice();
   function register(id, panel) {
+    if (HIDDEN.indexOf(id) !== -1) return;
     PANELS[id] = panel;
     if (ORDER.indexOf(id) === -1) ORDER.push(id);
   }
@@ -48,8 +51,11 @@ window.VttPanels = (function () {
     };
   }
 
+  // the order the shell lists them in: registration order, or the instance's (VttConfig.paneOrder,
+  // those ids first)
   function list() {
-    return ORDER.map((id) => Object.assign({ id }, PANELS[id]));
+    const first = ((window.VttConfig || {}).paneOrder || []).filter((id) => PANELS[id]);
+    return first.concat(ORDER.filter((id) => first.indexOf(id) === -1)).map((id) => Object.assign({ id }, PANELS[id]));
   }
 
   function mount(container, id, ctx) {

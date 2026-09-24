@@ -219,7 +219,7 @@ window.VttSession = (function () {
 
   // ── outgoing ───────────────────────────────────────────────────────
   Bus.on('op', (p) => {
-    if (!ws || receiving || !p || !Ops.OPS[p.name]) return;
+    if (!ws || receiving || !p || !Ops.OPS[p.name] || (Ops.LOCAL && Ops.LOCAL[p.name])) return;   // the GM's own keys stay here
     send({ type: 'op', name: p.name, args: p.args });
   });
 

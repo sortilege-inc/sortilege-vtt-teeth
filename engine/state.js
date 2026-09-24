@@ -247,10 +247,62 @@ window.VttState = (function () {
     }, 0);
   }
 
+  // ── the instance's seed ────────────────────────────────────────────
+  // VttConfig.defaultCampaign.seed names a pack file. What the deployment's own campaign (the default
+  // one, or one under its name) has never had is filled from it: a whole key; an entry of a list
+  // (matched by id), placed after the entry it follows in the pack; a field of an entry or object.
+  // Nothing the GM has set — even to nothing — is touched, and an entry the GM removed stays
+  // removed: every id the seed has offered is remembered in `seeded`. Resolves to the keys it changed.
+  // (Ported from sortilege-vtt-l5r5e, I19.)
+  function seed() {
+    const d = (window.VttConfig || {}).defaultCampaign || {};
+    if (!d.seed || !(id === 'default' || state.campaign.name === d.name)) return Promise.resolve([]);
+    return fetch(d.seed, { cache: 'no-cache' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(d.seed + ': ' + r.status))))
+      .then((pack) => {
+        if (!pack || pack.kind !== PACK_KIND) throw new Error(d.seed + ' is not a campaign pack');
+        if (typeof renameIds === 'function') renameIds(pack);
+        const offered = new Set(state.seeded || []);
+        const had = offered.size;
+        const isObj = (v) => v && typeof v === 'object' && !Array.isArray(v);
+        const keyed = (l) => Array.isArray(l) && l.length && l.every((x) => isObj(x) && x.id);
+        const remember = (v) => {
+          if (Array.isArray(v)) v.forEach(remember);
+          else if (isObj(v)) { if (v.id) offered.add(v.id); Object.keys(v).forEach((k) => remember(v[k])); }
+        };
+        const fill = (cur, src) => {
+          let changed = false;
+          if (keyed(src) && Array.isArray(cur)) {
+            src.forEach((x, i) => {
+              const at = cur.findIndex((y) => y && y.id === x.id);
+              if (at !== -1) { changed = fill(cur[at], x) || changed; return; }
+              if (offered.has(x.id)) return;
+              const prev = i ? cur.findIndex((y) => y && y.id === src[i - 1].id) : -1;
+              cur.splice(prev === -1 ? cur.length : prev + 1, 0, JSON.parse(JSON.stringify(x)));
+              changed = true;
+            });
+          } else if (isObj(src) && isObj(cur)) {
+            Object.keys(src).forEach((k) => {
+              if (cur[k] === undefined) { cur[k] = JSON.parse(JSON.stringify(src[k])); changed = true; }
+              else changed = fill(cur[k], src[k]) || changed;
+            });
+          }
+          return changed;
+        };
+        const keys = Object.keys(pack).filter((k) => ['kind', 'version', 'exportedAt', 'ui', 'campaign', 'seeded'].indexOf(k) === -1).filter((k) => {
+          if (state[k] === undefined) { state[k] = pack[k]; return true; }
+          return fill(state[k], pack[k]);
+        });
+        remember(Object.keys(pack).filter((k) => ['ui', 'campaign'].indexOf(k) === -1).map((k) => pack[k]));
+        if (keys.length || offered.size !== had) { state.seeded = Array.from(offered); save(); }
+        return keys;
+      });
+  }
+
   return {
     get state() { return state; },
     get id() { return id; },
-    commit, applyRemote, replaceShared, save, reload, ui, genId,
+    commit, seed, applyRemote, replaceShared, save, reload, ui, genId,
     listCampaigns, switchTo, create, remove,
     exportPack, importPack, downloadPack, PACK_KIND, PACK_VERSION,
   };

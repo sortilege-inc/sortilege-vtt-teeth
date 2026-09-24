@@ -241,3 +241,22 @@ arrangement. Worker redeployed (version 40d46430) for the new shared key.
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |
 | 12 | The Blood Cotillion map downloads in the owner's `~/Downloads/TEETH/Blood Cotillion` were converted to 2400 px WebP under `assets/maps/cotillion/` (owner's Q2: art lives in this repo) and declared per scene in `system/teeth/table.js`; grid at 80 px until the GM calibrates | The table needed a map to be proven on; the originals (5500 × 7000 JPG, up to 27 MB) stay out. |
+
+## Family standards (PLAYBOOK §4b, owner 2026-09-24)
+
+Ported from sortilege-vtt-l5r5e (I19) as system-free engine files, so this repo's `system/` is
+untouched but for its site tabs:
+
+1. **Not crawled** — `robots.txt` (the AI crawlers by name, then `*`) and a robots meta tag on every page.
+2. **The GM's material in the GM tabs, in the pack** — `engine/gm-text.js` (the GM Markdown with its
+   SET / OPEN / SOURCE tags, sections with an editor, notes, search) and `engine/gm-panes.js`
+   (Overview with rulings and free notes, Scenes with sessions, beats and questions for the table,
+   Threads, Places, People); their ops are local, never sent to a session's room
+   (`engine/ops.js` LOCAL, `engine/session.js`). The seed now fills by id and never re-adds what the
+   GM removed (`engine/state.js`); `hidePanes` / `paneOrder` (`engine/panels.js`).
+3. **A gate in front of /gm/** — `VttConfig.gmGate` (`engine/app.js`), once per tab.
+4. **The books off the public site** — `siteBooks: false`; every site tab but the dice is marked
+   `books`; the GM turns them on per browser in the new Settings pane. With every tab closed the
+   site says so. The book data stays publicly served (owner: fine for now).
+
+**Landed 2026-09-24** — localhost:8735 — the site: one tab, the closed-books page, the robots tag; /gm/: the gate, Enter, the nav gains Overview · Scenes · Threads · Places · People · Settings; a section with [SET]/[OPEN], bold, italic and code saved and drawn; a scene added; Settings' toggle wrote the key and the site then showed Rules · Characters · Character creator; vtt.html and play.html load with no console errors.

@@ -12,6 +12,16 @@ window.VttConfig = {
   defaultCampaign: { name: 'Blood Cotillion', modules: ['cotillion'], books: ['core', 'oneshot-shared', 'cotillion'] },
   // The Worker that holds player sessions (M5). Served from localhost the app talks
   // to `wrangler dev`; deployed, to the URL below. Empty = sessions disabled.
+  // The family standards (PLAYBOOK §4b): the public site's book tabs are off — the GM turns them on,
+  // per browser, in the GM page's Settings (engine/site.js) — and a veil stands in front of /gm/
+  // (engine/app.js). The GM's own material lives in the GM tabs (engine/gm-panes.js), in the pack.
+  siteBooks: false,
+  gmGate: {
+    title: 'The GM\u2019s table',
+    text: 'Beyond is the GM\u2019s material \u2014 the prep, the threads, what the players have not yet found. If you are playing, turn back.',
+    enter: 'Enter',
+    leave: 'Turn back',
+  },
   worker: {
     deployed: 'https://sortilege-vtt-teeth.sortilege.workers.dev',
     local: 'http://localhost:8787',

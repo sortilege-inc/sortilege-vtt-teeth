@@ -4,7 +4,19 @@
 // and writes nothing: no campaign, no session — those live under gm/.
 (function () {
   const { el } = window.VttRender;
-  const tabs = window.VttSiteTabs || [];
+  const CFG = window.VttConfig || {};
+  // A tab marked `books` shows the books' own text. On a deployment those tabs are off unless it
+  // turns them on (VttConfig.siteBooks) or this browser does (the GM page's Settings pane writes
+  // BOOKS_KEY, engine/gm-panes.js) — per browser, never for everyone (PLAYBOOK §4b.4).
+  const BOOKS_KEY = (CFG.storagePrefix || 'sortilege-vtt') + ':site-books';
+  let booksOn = !!CFG.siteBooks;
+  try { const v = localStorage.getItem(BOOKS_KEY); if (v !== null) booksOn = v === '1'; } catch (e) { /* storage off: the deployment's default */ }
+  const tabs = (window.VttSiteTabs || []).filter((t) => !t.books || booksOn);
+  // with every tab closed, the site is a page that says so
+  if (!tabs.length) tabs.push({ id: 'home', label: CFG.title || 'Home', render: (main) => main.appendChild(el('div', { class: 'site-closed' }, [
+    el('h1', {}, [CFG.title || '']),
+    el('p', { class: 'muted' }, ['The books are closed on this site. The GM opens them in the GM page’s Settings.']),
+  ])) });
   const bar = document.getElementById('site-tabs');
   const main = document.getElementById('site-main');
 

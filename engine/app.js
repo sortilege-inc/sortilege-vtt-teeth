@@ -19,9 +19,11 @@
   let single = 'tracker';
   let ctxs = [];
 
+  // a saved panel the page no longer has falls back to the default
   function slots() {
     const s = State.ui('slots');
-    return Array.isArray(s) && s.length === 3 ? s : DEFAULT_SLOTS.slice();
+    if (!Array.isArray(s) || s.length !== 3) return DEFAULT_SLOTS.slice();
+    return s.map((id, i) => (Panels.PANELS[id] ? id : DEFAULT_SLOTS[i]));
   }
 
   function teardown() {
@@ -159,5 +161,31 @@
   }
 
   window.VttApp = { open, render, mode: () => mode };
-  render();
+
+  // The veil (PLAYBOOK §4b.3): the GM page may stand behind a warning (VttConfig.gmGate = { title,
+  // text, enter, leave }) — a courtesy to a player who opens /gm/ on the public site, not access
+  // control. Passed once per tab (sessionStorage); "leave" goes back to the site.
+  const gate = CFG.gmGate;
+  if (CFG.title) document.title = CFG.title + ' — the GM’s table';
+  const GATE_KEY = (CFG.storagePrefix || 'sortilege-vtt') + ':gm-gate';
+  let passed = !gate;
+  try { passed = passed || sessionStorage.getItem(GATE_KEY) === '1'; } catch (e) { /* storage off: ask every load */ }
+  if (!passed) {
+    document.body.classList.add('gated');
+    const veil = el('div', { class: 'gm-veil', role: 'dialog', 'aria-modal': 'true' }, [el('div', { class: 'paper gm-veil-box' }, [
+      gate.title ? el('div', { class: 'gm-veil-title' }, [gate.title]) : null,
+      gate.text ? el('p', {}, [gate.text]) : null,
+      el('div', { class: 'chiprow' }, [
+        el('button', { class: 'btn', type: 'button', onclick: () => { try { sessionStorage.setItem(GATE_KEY, '1'); } catch (e) { /* this load only */ } veil.remove(); document.body.classList.remove('gated'); start(); } }, [gate.enter || 'Enter']),
+        el('a', { class: 'btn ghost', href: (CFG.pages && CFG.pages.site) || '../' }, [gate.leave || 'Leave']),
+      ]),
+    ])]);
+    document.body.appendChild(veil);
+  } else start();
+
+  function start() {
+    render();
+    // a deployment's seed fills what its campaign has never had (engine/state.js seed); redraw if it did
+    if (State.seed) State.seed().then((keys) => { if (keys.length) render(); }).catch((e) => window.console && console.warn('[vtt] seed: ' + e.message));
+  }
 })();
