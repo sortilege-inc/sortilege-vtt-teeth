@@ -201,7 +201,9 @@ export class SessionRoom extends DurableObject<Env> {
         try {
           Ops.apply(doc, msg.name, msg.args);
         } catch (e) {
-          return this.sendTo(ws, { type: 'error', message: (e as Error).message });
+          // the op failed here but already ran on the sender's copy: resend the stored document
+          this.sendTo(ws, { type: 'error', message: (e as Error).message });
+          return this.sendTo(ws, this.snapshotFor(att));
         }
         this.put('doc', doc);
         const forPlayers = Ops.forPlayers(doc, msg.name, msg.args);
