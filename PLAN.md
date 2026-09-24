@@ -96,7 +96,7 @@ applied), revealed clues, shared clocks, the roll log, and any handout the GM ha
 
 ### The playbook for the next system (goal 4)
 
-`PLAYBOOK.md` in this repo, written as we go: the layer boundary, the op contract, the storage
+`PLAYBOOK.md`, written as we go (first in this repo; since 2026-09-24 in `~/Sortilege/VTT/`, beside the VTT repos, with `INSTANCES.md`): the layer boundary, the op contract, the storage
 adapter, the campaign-pack schema, the build gate — with "what TEETH needed that the engine did
 not have" as the worked example of adding a system.
 

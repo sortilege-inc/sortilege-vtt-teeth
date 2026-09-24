@@ -3,7 +3,7 @@
 A virtual tabletop for **TEETH** (Jim Rossignol & Marsh Davies) — the GM's table, the players'
 sheets on their own devices, the GM's maps, and the published modules built in from the
 [Titterpig DSL corpus](../../Titterpig/DSL/titterpig-dsl-teeth) — built so the next system can
-copy its shape ([PLAYBOOK.md](PLAYBOOK.md)). Plan, decisions and milestones: [PLAN.md](PLAN.md).
+copy its shape (the family's `PLAYBOOK.md`, in `~/Sortilege/VTT/` beside the repos). Plan, decisions and milestones: [PLAN.md](PLAN.md).
 
 Buildless static site (GitHub Pages) plus one Cloudflare Worker for player sessions.
 
