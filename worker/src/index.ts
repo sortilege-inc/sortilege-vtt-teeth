@@ -191,7 +191,13 @@ export class SessionRoom extends DurableObject<Env> {
       case 'op': {
         const doc = this.get('doc');
         if (!doc) return this.sendTo(ws, { type: 'error', message: 'session not seeded yet' });
-        if (!Ops.permits(doc, att.role, att.memberId, msg.name, msg.args)) return this.sendTo(ws, { type: 'error', message: `not allowed: ${msg.name}` });
+        // a refused op was already applied to the sender's own copy (state.js commits before the room
+        // answers): send it the room's document again, so it is never left holding a change that
+        // never happened
+        if (!Ops.permits(doc, att.role, att.memberId, msg.name, msg.args)) {
+          this.sendTo(ws, { type: 'error', message: `not allowed: ${msg.name}` });
+          return this.sendTo(ws, this.snapshotFor(att));
+        }
         try {
           Ops.apply(doc, msg.name, msg.args);
         } catch (e) {
