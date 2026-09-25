@@ -540,7 +540,7 @@ window.VttSiteTabs = (function () {
 
   return [
     { id: 'rules', label: 'Rules', render: renderRules, books: true },
-    { id: 'characters', label: 'Characters', render: renderCharacters, books: true },
-    { id: 'creator', label: 'Character creator', render: renderCreator, books: true },
+    { id: 'characters', label: 'Characters', render: renderCharacters },
+    { id: 'creator', label: 'Character creator', render: renderCreator },
   ];
 })();
