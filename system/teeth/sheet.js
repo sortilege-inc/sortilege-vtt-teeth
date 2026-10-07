@@ -313,8 +313,10 @@ window.TeethSheet = (function () {
             patch(m, 'lists', { [l.name]: next });
           } }),
           el('span', { class: 'check-body' }, [
-            e ? E.link({ hash: e.id, name: e.name }) : el('b', {}, [it.name]),
-            typeof text === 'string' && text !== e.name ? el('div', { class: 'check-text' }, [text]) : null,
+            // a Sheet Ability's name is the converter's label (the one-shots' sheets print no titles): show its text as the item
+            e && e.type === 'Sheet Ability' && typeof text === 'string' ? E.link({ hash: e.id, name: e.name }, text)
+              : e ? E.link({ hash: e.id, name: e.name }) : el('b', {}, [it.name]),
+            typeof text === 'string' && text !== e.name && !(e && e.type === 'Sheet Ability') ? el('div', { class: 'check-text' }, [text]) : null,
           ]),
         ]);
       })),

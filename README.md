@@ -63,7 +63,9 @@ Everything you tick or type is saved in this browser as you go.
 
 **Open table** puts the current scene's map in its own window (`gm/vtt.html`): grid calibration,
 tokens for the party and the cast (add them from the toolbar; drag to move; right-click to hide,
-resize, rename), pings, circle / line / square effects, fog with reveal rectangles. A scene may
+resize, rename), pings, circle / line / square effects, fog with reveal rectangles; the grid can be
+square or **iso** (a diamond lattice with an adjustable ratio, on by default for the isometric
+maps), and the add-token menu opens with the figures of the scene in play. A scene may
 ship several maps — Buckleridge Manor is four floors, one map each, the middle floor first — and
 the toolbar's map list switches between them; tokens and fog belong to the floor. It follows the
 GM's scene unless pinned. **Legend** pulls up the map's key, verbatim from the book (the

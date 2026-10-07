@@ -15,6 +15,7 @@ window.VttSystem = (function () {
   // the map and never reaches players.
   const FLOORPLAN = '#tq0SUlmYKEpVhob71TNsDu2';   // "A Floorplan of Buckleridge Manor" (Blood Cotillion)
   const GRID = { size: 80, ox: 0, oy: 0 };
+  const ISO = { size: 120, ox: 0, oy: 0, iso: true, ratio: 0.577 };   // a 2:1.73 diamond lattice for the isometric engravings (30°)
   const MODULE_MAPS = {
     cotillion: [
       // the middle floor first: guests arrive there (the entrance hall, the ballroom)
@@ -28,16 +29,16 @@ window.VttSystem = (function () {
     // `scene` may list several scenes that happen in one place (the bridge), which then share a map.
     hogmen: [
       { id: 'hog-setup', name: 'The road to Gatlock', scene: ['The Set-Up & The Scenario', 'Who Are The Passengers?'], image: 'assets/maps/hogmen/setup.webp', w: 1072, h: 769, grid: GRID },
-      { id: 'hog-bridge', name: 'The bridge', scene: ['Calamity Strikes', 'What Do They Take?', 'The True Peril Is Revealed'], image: 'assets/maps/hogmen/bridge.webp', w: 2752, h: 1536, grid: GRID },
-      { id: 'hog-valley', name: 'The valley', scene: ['A Distant Hope Is Spied', 'Journey To The Lone Church'], image: 'assets/maps/hogmen/valley.webp', w: 1696, h: 2528, grid: GRID },
-      { id: 'hog-mill', name: 'The Old Mill', scene: 'The Old Mill', image: 'assets/maps/hogmen/old-mill.webp', w: 1792, h: 2400, grid: GRID },
-      { id: 'hog-choke', name: 'The Choke Point', scene: 'The Choke Point', image: 'assets/maps/hogmen/choke-point.webp', w: 1792, h: 2400, grid: GRID },
-      { id: 'hog-tree', name: 'The lone tree', scene: 'The Traveller In A Tree', image: 'assets/maps/hogmen/lone-tree.webp', w: 2048, h: 2048, grid: GRID },
-      { id: 'hog-wagon', name: 'The wagon', scene: 'The Imperiled Wagon', image: 'assets/maps/hogmen/imperilled-wagon.webp', w: 1792, h: 2400, grid: GRID },
-      { id: 'hog-farm', name: 'The Farmhouse', scene: 'The Farmhouse', image: 'assets/maps/hogmen/farmhouse.webp', w: 1792, h: 2400, grid: GRID },
-      { id: 'hog-bog', name: 'The Bog', scene: 'The Bog', image: 'assets/maps/hogmen/bog.webp', w: 1696, h: 2528, grid: GRID },
-      { id: 'hog-copse', name: 'The Tangled Copse', scene: 'The Tangled Copse', image: 'assets/maps/hogmen/tangled-copse.webp', w: 1792, h: 2400, grid: GRID },
-      { id: 'hog-church', name: 'The Lone Church', scene: 'Brace For The Hogstorm!', image: 'assets/maps/hogmen/lone-church.webp', w: 2048, h: 2048, grid: GRID },
+      { id: 'hog-bridge', name: 'The bridge', scene: ['Calamity Strikes', 'What Do They Take?', 'The True Peril Is Revealed'], image: 'assets/maps/hogmen/bridge.webp', w: 2752, h: 1536, grid: ISO },
+      { id: 'hog-valley', name: 'The valley', scene: ['A Distant Hope Is Spied', 'Journey To The Lone Church'], image: 'assets/maps/hogmen/valley.webp', w: 1696, h: 2528, grid: ISO },
+      { id: 'hog-mill', name: 'The Old Mill', scene: 'The Old Mill', image: 'assets/maps/hogmen/old-mill.webp', w: 1792, h: 2400, grid: ISO },
+      { id: 'hog-choke', name: 'The Choke Point', scene: 'The Choke Point', image: 'assets/maps/hogmen/choke-point.webp', w: 1792, h: 2400, grid: ISO },
+      { id: 'hog-tree', name: 'The lone tree', scene: 'The Traveller In A Tree', image: 'assets/maps/hogmen/lone-tree.webp', w: 2048, h: 2048, grid: ISO },
+      { id: 'hog-wagon', name: 'The wagon', scene: 'The Imperiled Wagon', image: 'assets/maps/hogmen/imperilled-wagon.webp', w: 1792, h: 2400, grid: ISO },
+      { id: 'hog-farm', name: 'The Farmhouse', scene: 'The Farmhouse', image: 'assets/maps/hogmen/farmhouse.webp', w: 1792, h: 2400, grid: ISO },
+      { id: 'hog-bog', name: 'The Bog', scene: 'The Bog', image: 'assets/maps/hogmen/bog.webp', w: 1696, h: 2528, grid: ISO },
+      { id: 'hog-copse', name: 'The Tangled Copse', scene: 'The Tangled Copse', image: 'assets/maps/hogmen/tangled-copse.webp', w: 1792, h: 2400, grid: ISO },
+      { id: 'hog-church', name: 'The Lone Church', scene: 'Brace For The Hogstorm!', image: 'assets/maps/hogmen/lone-church.webp', w: 2048, h: 2048, grid: ISO },
     ],
   };
 
@@ -58,6 +59,42 @@ window.VttSystem = (function () {
   const CREATURE_TOKENS = [
     { label: 'Hogman', kind: 'foe', image: 'assets/tokens/hogman.webp' },
   ];
+
+  // The figures a scene puts on the table, as the scene's own text names them. The corpus
+  // links no people to the one-shots' scenes (their refs are rules terms), so this is the
+  // system's list, by module and scene name; a Hogman wears the horde's token, a person the
+  // generic one, an animal its initials. The table offers them first, under "In this scene".
+  const SCENE_FIGURES = {
+    hogmen: {
+      'The Set-Up & The Scenario': ['The coachman at the reins', 'The second coachman', 'The horses'],
+      'Who Are The Passengers?': ['The coachman at the reins', 'The second coachman', 'The horses'],
+      'Calamity Strikes': ['The standing coachman', 'The stricken coachman', 'The panicked horse', 'Hogman'],
+      'What Do They Take?': ['The standing coachman', 'The stricken coachman', 'The panicked horse', 'Hogman'],
+      'The True Peril Is Revealed': ['The standing coachman', 'The stricken coachman', 'The surviving horse', 'Hogman', 'Pigs'],
+      'The Old Mill': ['The lone hogman', 'The dead marksman', 'Pigs'],
+      'The Choke Point': ['Soldier at the barricade', 'Second soldier at the barricade'],
+      'The Traveller In A Tree': ['The traveller in the tree', 'Raging pigs'],
+      'The Imperiled Wagon': ['The husband', 'The wife', 'The ox', 'The caged man'],
+      'The Farmhouse': ['The farmer', 'The farmer’s wife'],
+      'The Bog': ['The giant worm', 'The donkey'],
+      'The Tangled Copse': ['Pigs gnawing the tree', 'Pigs in the undergrowth'],
+      'Brace For The Hogstorm!': ['Hogman', 'Pigs', 'The farmer', 'The traveller', 'The soldiers'],
+    },
+  };
+  const BEASTS = /\b(horse|horses|pigs?|worm|ox|donkey)\b/i;
+  function figureToken(label) {
+    if (/hogman/i.test(label)) return { label, kind: 'foe', image: 'assets/tokens/hogman.webp' };
+    if (BEASTS.test(label)) return { label, kind: 'foe' };
+    return { label, kind: 'cast', image: NPC_TOKEN };
+  }
+  function sceneFigures(sceneId) {
+    for (const moduleId of modules()) {
+      const sc = D.scene(moduleId, sceneId);
+      const list = sc && SCENE_FIGURES[moduleId] && SCENE_FIGURES[moduleId][sc.name];
+      if (list) return list.map(figureToken);
+    }
+    return [];
+  }
 
   function portrait(entityId) {
     const e = D.entity(entityId);
@@ -179,8 +216,10 @@ window.VttSystem = (function () {
 
   // Tokens: the party (owned by the member, so a player may move their own) and the
   // module's cast (Notables and the like); anything else is a marker.
-  function tokenSources() {
+  function tokenSources(sceneId) {
     const groups = [];
+    const figures = sceneId ? sceneFigures(sceneId) : [];
+    if (figures.length) groups.push({ label: 'In this scene', items: figures });
     const party = (S().party || []).map((m) => ({ id: 'tk-' + m.id, label: m.name, kind: 'party', owner: m.id, ref: m.id, image: portrait(m.templateId) }));
     if (party.length) groups.push({ label: 'Party', items: party });
     modules().forEach((moduleId) => {

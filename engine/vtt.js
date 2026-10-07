@@ -145,9 +145,23 @@
   }
 
   // ── geometry ───────────────────────────────────────────────────────
+  // Square grid: a cell is `size` px on a side. Isometric grid (grid.iso): a cell is a diamond
+  // `size` wide and `size × ratio` tall, cell x running down-right and cell y down-left, so
+  // cell space stays a plain square lattice and tokens, fog and effects need no other change.
   const cell = () => map.grid.size;
-  const toPx = (cx, cy) => ({ x: map.grid.ox + cx * cell(), y: map.grid.oy + cy * cell() });
-  const toCell = (px, py) => ({ x: (px - map.grid.ox) / cell(), y: (py - map.grid.oy) / cell() });
+  const iso = () => !!map.grid.iso;
+  const ratio = () => map.grid.ratio || 0.5;
+  const toPx = (cx, cy) => iso()
+    ? { x: map.grid.ox + (cx - cy) * cell() / 2, y: map.grid.oy + (cx + cy) * cell() * ratio() / 2 }
+    : { x: map.grid.ox + cx * cell(), y: map.grid.oy + cy * cell() };
+  const toCell = (px, py) => {
+    if (!iso()) return { x: (px - map.grid.ox) / cell(), y: (py - map.grid.oy) / cell() };
+    const u = (px - map.grid.ox) / (cell() / 2);
+    const v = (py - map.grid.oy) / (cell() * ratio() / 2);
+    return { x: (u + v) / 2, y: (v - u) / 2 };
+  };
+  // a cell-space rectangle as a pixel polygon (a rectangle on a square grid, a rhombus on an isometric one)
+  const cellPoly = (x, y, w, h) => [toPx(x, y), toPx(x + w, y), toPx(x + w, y + h), toPx(x, y + h)].map((p) => `${p.x},${p.y}`).join(' ');
 
   function svgPoint(clientX, clientY) {
     const pt = svg.createSVGPoint();
@@ -223,17 +237,25 @@
       layers[k].setAttribute('height', map.h);
     });
     const c = cell();
-    layers.pattern.setAttribute('width', c);
-    layers.pattern.setAttribute('height', c);
-    layers.pattern.setAttribute('x', map.grid.ox);
-    layers.pattern.setAttribute('y', map.grid.oy);
-    layers.pattern.firstChild.setAttribute('d', `M ${c} 0 L 0 0 0 ${c}`);
+    if (iso()) {
+      const h = c * ratio();
+      layers.pattern.setAttribute('width', c);
+      layers.pattern.setAttribute('height', h);
+      layers.pattern.setAttribute('x', map.grid.ox - c / 2);
+      layers.pattern.setAttribute('y', map.grid.oy);
+      layers.pattern.firstChild.setAttribute('d', `M 0 ${h / 2} L ${c / 2} 0 L ${c} ${h / 2} M 0 ${h / 2} L ${c / 2} ${h} L ${c} ${h / 2}`);
+    } else {
+      layers.pattern.setAttribute('width', c);
+      layers.pattern.setAttribute('height', c);
+      layers.pattern.setAttribute('x', map.grid.ox);
+      layers.pattern.setAttribute('y', map.grid.oy);
+      layers.pattern.firstChild.setAttribute('d', `M ${c} 0 L 0 0 0 ${c}`);
+    }
     layers.grid.style.display = map.grid.show === false ? 'none' : '';
     layers.fog.style.display = map.fog.enabled ? '' : 'none';
     layers.fogHoles.innerHTML = '';
     map.fog.revealed.forEach((r) => {
-      const p = toPx(r.x, r.y);
-      layers.fogHoles.appendChild(s('rect', { x: p.x, y: p.y, width: r.w * c, height: r.h * c, fill: 'black' }));
+      layers.fogHoles.appendChild(s('polygon', { points: cellPoly(r.x, r.y, r.w, r.h), fill: 'black' }));
     });
   }
 
@@ -250,10 +272,11 @@
     const c = cell();
     map.tokens.forEach((t) => {
       if (PLAYER && (t.hidden || !isRevealed(t))) return;
-      const d = t.size * c;
-      const p = toPx(t.x, t.y);
-      const cx = p.x + d / 2;
-      const cy = p.y + d / 2;
+      // a token sits on the centre of its cell(s); on an iso grid it is sized to the diamond's height
+      const d = t.size * (iso() ? c * ratio() : c);
+      const ctr = toPx(t.x + t.size / 2, t.y + t.size / 2);
+      const cx = ctr.x;
+      const cy = ctr.y;
       const r = d / 2 - Math.max(2, c * 0.06);
       const color = t.color || Sys.tokenColor(t);
       const status = Sys.tokenStatus(t);           // { text, cls } or null — the system's word for the token's state
@@ -283,8 +306,7 @@
       return s('circle', { class: cls, cx: p.x, cy: p.y, r: e.r * c });
     }
     if (e.kind === 'square') {
-      const p = toPx(e.x, e.y);
-      return s('rect', { class: cls, x: p.x, y: p.y, width: e.w * c, height: e.h * c });
+      return s('polygon', { class: cls, points: cellPoly(e.x, e.y, e.w, e.h) });
     }
     if (e.kind === 'line') {
       const a = toPx(e.x1, e.y1);
@@ -432,9 +454,8 @@
       drag.moved = true;
       const g = layers.tokens.querySelector(`[data-id="${drag.token.id}"]`);
       if (g) {
-        const d = drag.token.size * cell();
-        const px = toPx(drag.token.x, drag.token.y);
-        g.setAttribute('transform', `translate(${px.x + d / 2},${px.y + d / 2})`);
+        const ctr = toPx(drag.token.x + drag.token.size / 2, drag.token.y + drag.token.size / 2);
+        g.setAttribute('transform', `translate(${ctr.x},${ctr.y})`);
       }
       return;
     }
@@ -608,14 +629,18 @@
       set(inp.checked);
       persist();
       renderAll();
+      if (label === 'iso') buildToolbar();
     });
     return el('label', {}, [inp, label]);
   }
 
   function addTokenAt(t) {
-    // stage new tokens along the top-left in a row so the GM can drag them out
+    // stage new tokens in a row across the top-centre of the map (in pixels, so it holds on an
+    // iso grid too), snapped to cells, so the GM can drag them out
     const taken = map.tokens.length;
-    map.tokens.push(Object.assign({ x: 1 + (taken % 10) * 1.2, y: 1 + Math.floor(taken / 10) * 1.2, size: 1, hidden: false }, t, { id: t.id || State.genId('tk') }));
+    const rowH = cell() * (iso() ? ratio() : 1);
+    const at = toCell(map.w / 2 + ((taken % 10) - 4.5) * cell(), rowH * (1 + Math.floor(taken / 10) * 1.2));   // a cell apart, so each snaps to its own
+    map.tokens.push(Object.assign({ x: snap(at.x - 0.5), y: snap(at.y - 0.5), size: 1, hidden: false }, t, { id: t.id || State.genId('tk') }));
     persist();
     renderTokens();
   }
@@ -685,13 +710,15 @@
       check('show', () => map.grid.show !== false, (v) => { map.grid.show = v; }),
       check('snap', () => map.grid.snap !== false, (v) => { map.grid.snap = v; }),
       numField('cell px', () => map.grid.size, (v) => { map.grid.size = Math.max(8, v); }),
+      check('iso', () => !!map.grid.iso, (v) => { map.grid.iso = v; if (v && !map.grid.ratio) map.grid.ratio = 0.5; }),
+      map.grid.iso ? numField('ratio', () => map.grid.ratio || 0.5, (v) => { map.grid.ratio = Math.min(1, Math.max(0.2, v)); }, 0.01) : null,
       numField('x', () => map.grid.ox, (v) => { map.grid.ox = v; }),
       numField('y', () => map.grid.oy, (v) => { map.grid.oy = v; }),
     ]));
 
     // tokens: the system lists what can stand on the table
     const addSel = el('select', { class: 'vtt-select' }, [el('option', { value: '' }, ['add token…'])]);
-    Sys.tokenSources().forEach((group) => {
+    Sys.tokenSources(sceneId).forEach((group) => {
       addSel.appendChild(el('option', { disabled: true }, ['— ' + group.label]));
       group.items.forEach((it) => addSel.appendChild(el('option', { value: JSON.stringify(it) }, [it.label])));
     });
