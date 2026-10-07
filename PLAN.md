@@ -188,6 +188,13 @@ top-centre of the map in pixel space, a cell apart (three figures landed in dist
 inside the map, on the iso farmhouse and on the square Vale map alike). Test member, tokens and
 campaign reverted.
 
+**Selecting and deleting shapes (2026-10-07, owner's ask):** decision 41. Proof on localhost
+through the real handlers: a circle, a square and a line drawn with the tools; with the Line tool
+still active a click on the circle selected it (dashed, hint "circle selected · Delete or the
+toolbar's Remove…", a *Remove circle* button in the toolbar) and Remove took it; right-click on the
+square opened a menu (Label / Remove square), Label set "Lantern oil" as its title and the menu's
+Remove took it; Clear (confirmed) emptied the rest and its button went with them. Map restored.
+
 **Players load their own (2026-09-19, owner's ask):** decision 31. Proof over the deployed
 Worker (version 9de18ac9), GM on localhost, player on 127.0.0.1 (room HN6RU): the player's claim
 screen showed *Load my character file…*; a character file read through the loader's path was
@@ -271,6 +278,7 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 38 | The table's grid has an **iso** mode (`grid.iso`, `grid.ratio`): a cell is a diamond `size` wide and `size × ratio` tall, cell x running down-right and cell y down-left; cell space stays a square lattice, so tokens, snapping, fog reveals and square effects need no new logic — rectangles in cell space draw as polygons. The isometric Hogmen maps ship with it on (ratio 0.577, the 30° engravings); the Vale map and the Cotillion plans stay square | Owner's ask 2026-10-07. One projection function, everything else unchanged. |
 | 39 | Each scene's figures are offered first in the add-token menu, under *In this scene*, as the scene's own text names them (`SCENE_FIGURES`, by module and scene name): a Hogman wears the horde's token, a person the generic one, an animal its initials. Hand-listed in the system module because the corpus links no people to the one-shots' scenes (their refs are rules terms) | Owner's ask 2026-10-07. Written for Night of the Hogmen; Blood Cotillion's and Stranger's scenes are still to be listed. |
 | 40 | A one-shot playbook's Special Abilities carry no titles in the book — the corpus says so at the `Sheet Ability` type ("the DEF names are authored labels") — so the sheet shows each ability's text as the item, not "X Ability 1" | Owner asked whether the pregens' abilities should have names (2026-10-07): they don't; the labels were the converter's. |
+| 41 | Shapes drawn with the circle, line and square tools are selected by a click (dashed highlight), removed by the toolbar's **Remove** button or the Delete key, labelled or removed from a right-click menu, and all cleared at once by **Clear** (confirmed); the hint names the selection. Right-click no longer deletes a shape outright | Owner 2026-10-07: there was no visible way to select or delete a shape — selection and Delete existed but nothing said so, and right-click deleted without warning. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

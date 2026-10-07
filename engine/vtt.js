@@ -415,7 +415,9 @@
       selectedId = t.id;
       renderTokens();
     }
-    if (!PLAYER && tool !== 'select') {
+    const onEffect = e.target.closest && e.target.closest('.effect');
+    const shapeTool = tool === 'circle' || tool === 'line' || tool === 'square';
+    if (!PLAYER && tool !== 'select' && !(shapeTool && onEffect)) {     // with a shape tool, a click on an existing shape selects it instead of drawing
       drag = { kind: 'tool', start: toCell(p.x, p.y), cur: toCell(p.x, p.y) };
       svg.setPointerCapture(e.pointerId);
       return;
@@ -431,6 +433,15 @@
       selectedId = null;
       renderEffects();
       renderTokens();
+      buildToolbar();
+      syncHint();
+      return;                                   // a click on an effect selects it; it does not start a pan
+    }
+    if (!PLAYER && selectedEffect) {           // a click elsewhere clears the selection
+      selectedEffect = null;
+      renderEffects();
+      buildToolbar();
+      syncHint();
     }
     drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y };
     svg.setPointerCapture(e.pointerId);
@@ -500,6 +511,8 @@
           map.effects.push(fx);
           persist();
           renderEffects();
+          buildToolbar();
+          syncHint();
         }
       }
     }
@@ -536,10 +549,7 @@
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && !(e.target instanceof HTMLInputElement)) {
       if (selectedEffect) {
-        map.effects = map.effects.filter((x) => x.id !== selectedEffect);
-        selectedEffect = null;
-        persist();
-        renderEffects();
+        removeEffect(selectedEffect);
       } else if (selectedId) {
         removeToken(selectedId);
       }
@@ -567,9 +577,18 @@
     const t = tokenAt(e.target);
     const fx = e.target.closest && e.target.closest('.effect');
     if (fx) {
-      map.effects = map.effects.filter((x) => x.id !== fx.dataset.id);
-      persist();
+      const effect = map.effects.find((x) => x.id === fx.dataset.id);
+      if (!effect) return;
+      selectedEffect = effect.id;
+      selectedId = null;
       renderEffects();
+      renderTokens();
+      buildToolbar();
+      menu = buildEffectMenu(effect);
+      const rect = stage.getBoundingClientRect();
+      menu.style.left = Math.min(e.clientX - rect.left, rect.width - 260) + 'px';
+      menu.style.top = Math.min(e.clientY - rect.top, rect.height - 160) + 'px';
+      stage.appendChild(menu);
       return;
     }
     if (!t) return;
@@ -585,6 +604,22 @@
   document.addEventListener('pointerdown', (e) => {
     if (menu && !menu.contains(e.target)) closeMenu();
   });
+
+  function removeEffect(id) {
+    map.effects = map.effects.filter((x) => x.id !== id);
+    if (selectedEffect === id) selectedEffect = null;
+    persist();
+    renderEffects();
+    buildToolbar();
+    syncHint();
+  }
+
+  function buildEffectMenu(fx) {
+    const kind = fx.kind === 'circle' ? 'Circle' : fx.kind === 'line' ? 'Line' : 'Square';
+    const label = el('button', { class: 'btn ghost', onclick: () => { const n = prompt('Label (shown on hover)', fx.label || ''); if (n != null) { fx.label = n; persist(); renderEffects(); } closeMenu(); } }, [fx.label ? 'Relabel' : 'Label']);
+    const remove = el('button', { class: 'btn danger', onclick: () => { removeEffect(fx.id); closeMenu(); } }, ['Remove ' + kind.toLowerCase()]);
+    return el('div', { class: 'vtt-menu' }, [el('h4', {}, [fx.label || kind]), el('div', { class: 'row' }, [label, remove])]);
+  }
 
   function buildMenu(t) {
     const hide = el('button', { class: 'btn ghost', onclick: () => { t.hidden = !t.hidden; persist(); renderTokens(); closeMenu(); } }, [t.hidden ? 'Reveal to players' : 'Hide from players']);
@@ -743,11 +778,16 @@
     });
     toolbar.appendChild(el('div', { class: 'group' }, [addSel]));
 
+    const selectedFx = selectedEffect ? map.effects.find((x) => x.id === selectedEffect) : null;
+    const removeFx = selectedFx ? el('button', { class: 'btn danger', title: 'Remove the selected shape (Delete does the same)', onclick: () => removeEffect(selectedFx.id) }, ['Remove ' + selectedFx.kind]) : null;
+    const clearFx = map.effects.length ? el('button', { class: 'btn ghost', title: 'Remove every circle, line and square on this map', onclick: () => { if (confirm(`Remove all ${map.effects.length} shapes on this map?`)) { map.effects = []; selectedEffect = null; persist(); renderEffects(); buildToolbar(); syncHint(); } } }, ['Clear']) : null;
     toolbar.appendChild(el('div', { class: 'group' }, [
       toolButton('ping', 'Ping', 'Click the map to ping it in every window'),
       toolButton('circle', 'Circle', 'Drag from centre'),
       toolButton('line', 'Line', 'Drag start to end'),
       toolButton('square', 'Square', 'Drag corner to corner'),
+      removeFx,
+      clearFx,
     ]));
 
     const resetFog = el('button', { class: 'btn ghost', onclick: () => { map.fog.revealed = []; persist(); renderBase(); } }, ['Reset']);
@@ -776,7 +816,13 @@
       hint.textContent = myMemberId() ? 'Drag your own token · wheel zooms · drag the map to pan' : 'Wheel zooms · drag the map to pan';
       return;
     }
-    hint.textContent = note + (n ? `${n} token${n === 1 ? '' : 's'} · drag to move · right-click for hide, size, rename · Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.');
+    if (selectedEffect) {
+      const fx = map.effects.find((x) => x.id === selectedEffect);
+      hint.textContent = `${fx && fx.label ? fx.label : (fx ? fx.kind : 'shape')} selected · Delete or the toolbar's Remove takes it away · right-click to label it · click elsewhere to deselect`;
+      return;
+    }
+    const shapes = map.effects.length ? ` · ${map.effects.length} shape${map.effects.length === 1 ? '' : 's'}: click one to select it` : '';
+    hint.textContent = note + (n ? `${n} token${n === 1 ? '' : 's'} · drag to move · right-click for hide, size, rename · Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
   }
 
   // ── bus ────────────────────────────────────────────────────────────

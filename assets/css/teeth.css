@@ -265,7 +265,7 @@ body.player .token { cursor: default; }
 .token.hidden-token { opacity: 0.45; }
 .effect { fill: rgba(143, 29, 34, 0.18); stroke: var(--blood-2); stroke-width: 2; cursor: pointer; }
 .effect.line { stroke: rgba(181, 52, 58, 0.55); stroke-linecap: round; }
-.effect.selected { stroke: #fbf6ea; stroke-width: 3; }
+.effect.selected { stroke: #fbf6ea; stroke-dasharray: 6 4; filter: drop-shadow(0 0 3px #1a1613); }
 .effect.preview { pointer-events: none; stroke-dasharray: 8 6; }
 .ping { fill: none; stroke: #fbf6ea; stroke-width: 4; pointer-events: none; }
 .vtt-hint { position: absolute; left: 0.7rem; bottom: 0.5rem; color: var(--paper-3); font-size: 0.75rem; pointer-events: none; text-shadow: 0 1px 2px #000; }
