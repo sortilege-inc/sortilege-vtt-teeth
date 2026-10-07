@@ -27,6 +27,7 @@ window.VttSystem = (function () {
     // Night of the Hogmen: isometric engravings made for the VTT (owner, 2026-10-07), one per place;
     // `scene` may list several scenes that happen in one place (the bridge), which then share a map.
     hogmen: [
+      { id: 'hog-setup', name: 'The road to Gatlock', scene: ['The Set-Up & The Scenario', 'Who Are The Passengers?'], image: 'assets/maps/hogmen/setup.webp', w: 1072, h: 769, grid: GRID },
       { id: 'hog-bridge', name: 'The bridge', scene: ['Calamity Strikes', 'What Do They Take?', 'The True Peril Is Revealed'], image: 'assets/maps/hogmen/bridge.webp', w: 2752, h: 1536, grid: GRID },
       { id: 'hog-valley', name: 'The valley', scene: ['A Distant Hope Is Spied', 'Journey To The Lone Church'], image: 'assets/maps/hogmen/valley.webp', w: 1696, h: 2528, grid: GRID },
       { id: 'hog-mill', name: 'The Old Mill', scene: 'The Old Mill', image: 'assets/maps/hogmen/old-mill.webp', w: 1792, h: 2400, grid: GRID },
