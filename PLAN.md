@@ -202,6 +202,14 @@ to *Blood Cotillion* left Hogmen's arrangement in place and Cotillion's untouche
 Middle Floor* with no numbers. Six Node assertions: players receive but cannot send the
 arrangement. Worker redeployed (version 40d46430) for the new shared key.
 
+**Playbooks of the modules in play (2026-10-07, owner's report):** decision 36. Proof on
+localhost through the real controls: with books set to core / shared / cotillion only, ticking
+*Night of the Hogmen* in the Campaign panel listed 9 Passengers beside the 8 Ingenues and added
+`hogmen` to the books; with books left at cotillion's and the module switched to *Stranger and
+Stranger*, the picker listed 7 Villagers, adding Peter Clovis as "Test Villager" gave a sheet with
+Stress, Corruption and Stranger's own injury levels (Level one · Less Effect …); the books a module
+in play needs show locked in the Campaign panel. Test member removed, campaign restored.
+
 ## Decision log
 
 | # | Decision | Why |
@@ -237,6 +245,7 @@ arrangement. Worker redeployed (version 40d46430) for the new shared key.
 | 33 | The player's sheet has **Download my character**: the party member as the player holds it now — live tracks, picks, their notes — as a character file; the GM's notes are not in the player's copy, so they cannot leak into it. A file downloaded here loads again on the join screen | Owner's ask 2026-09-19. The character belongs to the player; the file is how they keep it. |
 | 34 | The module in play is picked at the top of the Module tracker (every book with an ARC); picking one sets `campaign.modules` to it and its books to the core, the shared types and itself, keeping the campaign's other reference books, and renames the default campaign (or one still carrying a module's name) after the module; a campaign the GM named keeps its name. The Campaign panel's checkboxes remain for several modules at once | Owner could not find how to run Night of the Hogmen (2026-09-20): the control was three panels away. Progress and current scene are per module already, so switching loses nothing. |
 | 35 | Scenes carry no numbers. The GM drags a scene within or between phases in the tracker, and the cast into any order; the arrangement is shared state (`order.scenes[module]` = phases with scene ids, `order.cast[module]` = ids) and so in the pack, and every page reads it (`VttSystem.pages/cast`): the Scene panel's Previous / Next, the table's map list, the token list. A scene the arrangement does not name keeps the book's phase; ids not listed follow in the book's order | Owner's ask 2026-09-20. Plain HTML5 drag (`VttRender.dragSort`), the order read off the DOM on drop — no library. |
+| 36 | The books a campaign plays with are its "Books for reference" **plus, always, every module in play's own** (`VttSystem.playBooks`: a one-shot brings the core and the shared types with it). The Party picker, Clocks, the sheet's lookups (Roll ladder, Tracks, Injury Levels) and the Rules browser read that set; the Campaign panel's module checkbox adds the module's books, and a book a module in play needs is locked on | Owner 2026-10-07: "add a character from a playbook" showed no Passengers or Villagers — the picker read only the reference books, which the Campaign panel's module checkbox never touched (the tracker's picker did). The module's own material must not depend on which control put it in play. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

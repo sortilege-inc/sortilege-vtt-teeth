@@ -28,6 +28,7 @@ window.TeethSheet = (function () {
   let bookScope = null;
   const books = () => {
     if (bookScope) return bookScope;
+    if (window.VttSystem && window.VttSystem.playBooks) return window.VttSystem.playBooks();   // reference books + the modules in play
     const b = (S().campaign && S().campaign.books) || [];
     return b.length ? b : null;
   };

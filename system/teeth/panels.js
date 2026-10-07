@@ -12,10 +12,8 @@
   const S = () => State.state;
   const Sys = () => window.VttSystem;            // the table adapter: the GM's arrangement of scenes and cast
   const campaignModules = () => (S().campaign.modules || []).filter((id) => D.arc(id));
-  const campaignBooks = () => {
-    const b = S().campaign.books || [];
-    return b.length ? b : D.books().map((x) => x.id);
-  };
+  // the books the campaign plays with: its reference books plus every module in play's own
+  const campaignBooks = () => Sys().playBooks();
 
   // ── current scene ──────────────────────────────────────────────────
   function currentScene(moduleId) {
@@ -38,8 +36,7 @@
   // The books a module plays with: the core, the one-shots' shared types, itself — the campaign's
   // other books stay ticked.
   function booksFor(moduleId) {
-    const b = D.book(moduleId);
-    const own = b && b.kind === 'one-shot' ? ['core', 'oneshot-shared', moduleId] : [moduleId];
+    const own = Sys().booksFor(moduleId);
     const others = (S().campaign.books || []).filter((id) => !D.arc(id) || id === moduleId);
     return own.concat(others.filter((id) => own.indexOf(id) === -1));
   }
@@ -447,13 +444,15 @@
         el('input', { type: 'checkbox', checked: (c.modules || []).indexOf(m.id) !== -1 || null, onchange: (ev) => {
           const mods = (c.modules || []).filter((x) => x !== m.id);
           if (ev.target.checked) mods.push(m.id);
-          State.commit('setCampaign', [{ modules: mods }]);
+          const patch = { modules: mods };
+          if (ev.target.checked) patch.books = (c.books || []).concat(Sys().booksFor(m.id).filter((id) => (c.books || []).indexOf(id) === -1));   // its books come with it
+          State.commit('setCampaign', [patch]);
         } }),
         ' ' + m.arcs[0].name,
       ])));
       container.appendChild(el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, ['Modules in play']), el('div', { class: 'prop-v' }, [modBox])]));
       const bookBox = el('div', { class: 'checks' }, D.books().map((b) => el('label', {}, [
-        el('input', { type: 'checkbox', checked: campaignBooks().indexOf(b.id) !== -1 || null, onchange: (ev) => {
+        el('input', { type: 'checkbox', checked: campaignBooks().indexOf(b.id) !== -1 || null, disabled: campaignModules().some((m) => Sys().booksFor(m).indexOf(b.id) !== -1) || null, title: campaignModules().some((m) => Sys().booksFor(m).indexOf(b.id) !== -1) ? 'A module in play uses this book' : null, onchange: (ev) => {
           const books = campaignBooks().filter((x) => x !== b.id);
           if (ev.target.checked) books.push(b.id);
           State.commit('setCampaign', [{ books }]);

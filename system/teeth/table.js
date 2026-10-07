@@ -32,6 +32,22 @@ window.VttSystem = (function () {
 
   const modules = () => (S().campaign.modules || []).filter((id) => D.arc(id));
 
+  // The books a module plays with: a one-shot rides on the core and the one-shots' shared types;
+  // a standalone game is itself.
+  function booksFor(moduleId) {
+    const b = D.book(moduleId);
+    return b && b.kind === 'one-shot' ? ['core', 'oneshot-shared', moduleId] : [moduleId];
+  }
+
+  // The books the campaign plays with: its "Books for reference" plus, always, the books of every
+  // module in play — so a module's playbooks, clocks and injury levels are there the moment the
+  // module is, whichever control put it in play.
+  function playBooks() {
+    const out = (S().campaign.books || []).slice();
+    modules().forEach((m) => booksFor(m).forEach((id) => out.indexOf(id) === -1 && out.push(id)));
+    return out.length ? out : D.books().map((b) => b.id);
+  }
+
   // A module's scenes in the GM's arrangement (state.order.scenes, set by dragging in the
   // tracker), else the book's: [{ phase, scene }]. A scene the arrangement does not name keeps
   // the book's phase, after the arranged ones; a phase the arrangement does not name comes
@@ -174,5 +190,5 @@ window.VttSystem = (function () {
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, pages, cast, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, booksFor, playBooks, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
 })();
