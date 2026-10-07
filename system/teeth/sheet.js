@@ -383,7 +383,9 @@ window.TeethSheet = (function () {
     const rollLog = el('div', { class: 'roll-log' });
     const log = (entry) => rollLog.prepend(rollLine(entry));
     (S().log || []).filter((x) => x.kind === 'roll' && x.memberId === m.id).slice(-5).reverse().forEach((x) => rollLog.appendChild(rollLine(x)));
-    const header = el('header', { class: 'sheet-head' }, [
+    const face = window.VttSystem && window.VttSystem.portrait ? window.VttSystem.portrait(t.id) : null;
+    const header = el('header', { class: 'sheet-head' + (face ? ' with-portrait' : '') }, [
+      face ? el('img', { class: 'portrait', src: face, alt: '' }) : null,
       el('h2', {}, [m.name]),
       el('div', { class: 'meta' }, [E.link({ hash: t.id, name: t.name }), el('span', { class: 'muted' }, [t.form === 'ACTOR' ? 'a shared sheet' : (t.type || '')])]),
       ...sp.header.map((h) => h.ref ? el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [h.name]), el('div', { class: 'prop-v' }, [E.link(h.ref)])])

@@ -148,7 +148,9 @@ window.VttSiteTabs = (function () {
       container.appendChild(el('h3', {}, [`The characters (${ts.length})`]));
       container.appendChild(el('div', { class: 'cards' }, ts.map((t) => {
         const tag = ['Tagline', 'Epithet', 'Quote'].map((k) => D.propValue(t, k)).find((v) => typeof v === 'string');
-        return el('a', { class: 'card', href: ctx.href('characters', [bid, t.id]) }, [
+        const face = window.VttSystem && window.VttSystem.portrait ? window.VttSystem.portrait(t.id) : null;
+        return el('a', { class: 'card' + (face ? ' with-portrait' : ''), href: ctx.href('characters', [bid, t.id]) }, [
+          face ? el('img', { class: 'portrait', src: face, alt: '' }) : null,
           el('div', { class: 'card-name' }, [t.name]),
           el('div', { class: 'card-sub' }, [t.type || '']),
           tag ? el('div', { class: 'card-desc' }, [tag]) : null,

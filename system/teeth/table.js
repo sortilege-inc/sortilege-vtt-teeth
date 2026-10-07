@@ -24,7 +24,44 @@ window.VttSystem = (function () {
       { id: 'manor-roof', name: 'Roof & Attic', scene: 'The Manor Itself', image: 'assets/maps/cotillion/manor-roof.webp', w: 2160, h: 1440, grid: GRID, legend: { entity: FLOORPLAN, prop: 'Roof & Attic' } },
       { id: 'grounds', name: 'The grounds', scene: 'The Grounds and Gardens', image: 'assets/maps/cotillion/grounds-colour.webp', w: 2400, h: 3055, grid: GRID },
     ],
+    // Night of the Hogmen: isometric engravings made for the VTT (owner, 2026-10-07), one per place;
+    // `scene` may list several scenes that happen in one place (the bridge), which then share a map.
+    hogmen: [
+      { id: 'hog-bridge', name: 'The bridge', scene: ['Calamity Strikes', 'What Do They Take?', 'The True Peril Is Revealed'], image: 'assets/maps/hogmen/bridge.webp', w: 2752, h: 1536, grid: GRID },
+      { id: 'hog-valley', name: 'The valley', scene: ['A Distant Hope Is Spied', 'Journey To The Lone Church'], image: 'assets/maps/hogmen/valley.webp', w: 1696, h: 2528, grid: GRID },
+      { id: 'hog-mill', name: 'The Old Mill', scene: 'The Old Mill', image: 'assets/maps/hogmen/old-mill.webp', w: 1792, h: 2400, grid: GRID },
+      { id: 'hog-choke', name: 'The Choke Point', scene: 'The Choke Point', image: 'assets/maps/hogmen/choke-point.webp', w: 1792, h: 2400, grid: GRID },
+      { id: 'hog-tree', name: 'The lone tree', scene: 'The Traveller In A Tree', image: 'assets/maps/hogmen/lone-tree.webp', w: 2048, h: 2048, grid: GRID },
+      { id: 'hog-wagon', name: 'The wagon', scene: 'The Imperiled Wagon', image: 'assets/maps/hogmen/imperilled-wagon.webp', w: 1792, h: 2400, grid: GRID },
+      { id: 'hog-farm', name: 'The Farmhouse', scene: 'The Farmhouse', image: 'assets/maps/hogmen/farmhouse.webp', w: 1792, h: 2400, grid: GRID },
+      { id: 'hog-bog', name: 'The Bog', scene: 'The Bog', image: 'assets/maps/hogmen/bog.webp', w: 1696, h: 2528, grid: GRID },
+      { id: 'hog-copse', name: 'The Tangled Copse', scene: 'The Tangled Copse', image: 'assets/maps/hogmen/tangled-copse.webp', w: 1792, h: 2400, grid: GRID },
+      { id: 'hog-church', name: 'The Lone Church', scene: 'Brace For The Hogstorm!', image: 'assets/maps/hogmen/lone-church.webp', w: 2048, h: 2048, grid: GRID },
+    ],
   };
+
+  // Art for the people: a TEMPLATE's portrait (by its name) is its token and its sheet's face.
+  // Anyone without a portrait wears the generic token; the Hogman is the horde's.
+  const PORTRAITS = {
+    'Dr Nabeel Uddin': 'assets/art/hogmen/nabeel-uddin.webp',
+    'Lady Catherina de Grope': 'assets/art/hogmen/catherina-de-grope.webp',
+    'Madam Blanche Wosenbury': 'assets/art/hogmen/blanche-wosenbury.webp',
+    'Mr Laconicus Strong': 'assets/art/hogmen/laconicus-strong.webp',
+    'Mr Theodore Orlingstet': 'assets/art/hogmen/theodore-orlingstet.webp',
+    'Mr Trode Wickle': 'assets/art/hogmen/trode-wickle.webp',
+    'Ms Dandridge Sloopville-Jones': 'assets/art/hogmen/dandridge-sloopville-jones.webp',
+    'Reverend Matthew Eel': 'assets/art/hogmen/matthew-eel.webp',
+    'Sir Shartle Pudget': 'assets/art/hogmen/shartle-pudget.webp',
+  };
+  const NPC_TOKEN = 'assets/tokens/npc.svg';
+  const CREATURE_TOKENS = [
+    { label: 'Hogman', kind: 'foe', image: 'assets/tokens/hogman.webp' },
+  ];
+
+  function portrait(entityId) {
+    const e = D.entity(entityId);
+    return (e && PORTRAITS[e.name]) || null;
+  }
   // Other images in the repo the GM may put on any map ("maps in the repo…").
   const EXTRA_ASSETS = [
     { label: 'Blood Cotillion — the grounds (line)', image: 'assets/maps/cotillion/grounds.webp' },
@@ -106,8 +143,9 @@ window.VttSystem = (function () {
     modules().forEach((moduleId) => {
       const pg = D.pages(moduleId);
       (MODULE_MAPS[moduleId] || []).forEach((d) => {
-        const page = pg.find((p) => p.scene.name === d.scene);
-        if (page) out.push(Object.assign({}, d, { sceneId: page.scene.id, moduleId }));
+        const names = Array.isArray(d.scene) ? d.scene : [d.scene];
+        const pages = names.map((n) => pg.find((p) => p.scene.name === n)).filter(Boolean);
+        if (pages.length) out.push(Object.assign({}, d, { scene: names[0], sceneId: pages[0].scene.id, sceneIds: pages.map((p) => p.scene.id), moduleId }));
       });
     });
     return out;
@@ -119,7 +157,7 @@ window.VttSystem = (function () {
 
   // The map a scene opens on: its first shipped map, else the scene itself as a blank map.
   function defaultMapId(sceneId) {
-    const first = maps().find((m) => m.sceneId === sceneId);
+    const first = maps().find((m) => m.sceneIds.indexOf(sceneId) !== -1);
     return first ? first.id : sceneId;
   }
 
@@ -142,16 +180,18 @@ window.VttSystem = (function () {
   // module's cast (Notables and the like); anything else is a marker.
   function tokenSources() {
     const groups = [];
-    const party = (S().party || []).map((m) => ({ id: 'tk-' + m.id, label: m.name, kind: 'party', owner: m.id, ref: m.id }));
+    const party = (S().party || []).map((m) => ({ id: 'tk-' + m.id, label: m.name, kind: 'party', owner: m.id, ref: m.id, image: portrait(m.templateId) }));
     if (party.length) groups.push({ label: 'Party', items: party });
     modules().forEach((moduleId) => {
-      const people = cast(moduleId).map((e) => ({ label: e.name, kind: 'cast', ref: e.id }));
+      const people = cast(moduleId).map((e) => ({ label: e.name, kind: 'cast', ref: e.id, image: portrait(e.id) || NPC_TOKEN }));
       if (people.length) groups.push({ label: (D.arc(moduleId) || {}).name || moduleId, items: people });
     });
+    groups.push({ label: 'Creatures', items: CREATURE_TOKENS.map((c) => Object.assign({}, c)) });
+    groups.push({ label: 'Anyone else', items: [{ label: 'Someone (name them)', kind: 'cast', image: NPC_TOKEN, named: true }] });
     return groups;
   }
 
-  const COLORS = { party: '#4f6b3a', cast: '#8f1d22', marker: '#6b6154' };
+  const COLORS = { party: '#4f6b3a', cast: '#8f1d22', foe: '#1a1613', marker: '#6b6154' };
   function tokenColor(t) {
     return COLORS[t.kind] || COLORS.marker;
   }
@@ -190,5 +230,5 @@ window.VttSystem = (function () {
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, pages, cast, booksFor, playBooks, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, booksFor, playBooks, portrait, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
 })();

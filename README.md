@@ -129,7 +129,7 @@ build/          the generator and its gate
 data/           GENERATED — window.TEETH.books / .entities / .index
 engine/         system-agnostic: bus, ops, state, session, panels, the shell, the table, the player's page, the site shell
 system/teeth/   the TEETH module: sheets, tracks, clocks, the d6 pool roller, TEETH ops, the site's tabs
-assets/maps/    the GM's maps (web-sized; the Manor's four floors cut from the flat plan); assets/art/ portraits and handouts
+assets/maps/    the GM's maps (the Manor's four floors; Night of the Hogmen's ten isometric places); assets/art/ portraits (the nine Passengers); assets/tokens/ the Hogman and the generic token
 worker/         the Cloudflare Worker: the SessionRoom Durable Object (deploy separately)
 docs/           notes; PLAN.md is the decision log
 ```

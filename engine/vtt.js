@@ -630,7 +630,7 @@
     const mapSel = el('select', { class: 'vtt-select' });
     const shipped = Sys.maps();
     scenes().forEach((sc) => {
-      const ms = shipped.filter((m) => m.sceneId === sc.id);
+      const ms = shipped.filter((m) => m.sceneId === sc.id);          // listed once, under the first scene it serves
       if (!ms.length) mapSel.appendChild(el('option', { value: sc.id, selected: sc.id === mapId || null }, [sc.name]));
       ms.forEach((m) => mapSel.appendChild(el('option', { value: m.id, selected: m.id === mapId || null }, [`${sc.name} · ${m.name}`])));
     });
@@ -702,7 +702,16 @@
       if (addSel.value === '__marker') {
         const n = prompt('Marker label');
         if (n) addTokenAt({ label: n, kind: 'marker' });
-      } else addTokenAt(JSON.parse(addSel.value));
+      } else {
+        const it = JSON.parse(addSel.value);
+        if (it.named) {
+          const n = prompt('Who is this?');
+          if (!n) { addSel.value = ''; return; }
+          it.label = n;
+          delete it.named;
+        }
+        addTokenAt(it);
+      }
       addSel.value = '';
     });
     toolbar.appendChild(el('div', { class: 'group' }, [addSel]));
