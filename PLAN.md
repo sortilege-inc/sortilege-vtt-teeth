@@ -257,6 +257,14 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**The GM's map and the players' (2026-10-08):** decision 79. Proof on localhost, the GM's table
+and a player view (`?view=player`) on the same origin: both on the middle floor, the button read
+"Players are here" (disabled); the map list switched the GM to the lower floor and the players'
+`table.map` stayed `manor-middle`, the player view's title too, the button now "Bring players
+here" with the tooltip "The players are on The Manor Itself · Middle Floor — bring them to this
+one"; a click set `table.map` to `manor-lower` (one undo), the player view's title went to the
+lower floor and the button read "Players are here". Reverted to the middle floor.
+
 **Guts used up and injuries told (2026-10-08):** decision 78. Proof on localhost through
 `TeethSheet.live` for Miss Maria Morsock: the last Stress box logged "has used up their Stress
 (8 / 8)"; Stress back to 6 then *Push +1E (2 Stress)* logged the used-up line before the push line;
@@ -427,6 +435,7 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 76 | Beside the map the player's sidebar is two panes: the sheet above (two thirds), *At the table* below (one third, the last 30 lines), each with its own scroll, the rolls pane hideable | Owner's ask: no scrolling up and down between the sheet and the rolls. Replaces the fold of decision 71. |
 | 77 | A pick-them-all ability list (pick n of n) counts as chosen for the buttons; a pick-some list shows its buttons once the picks are made | Found proving 72: Mr Laconicus Strong picks 2 of 3, so a fresh pregen showed no buttons until chosen — by design, said so. |
 | 78 | The table is told when Guts or Stress is used up (a box set to the limit, or a Push/Assist that reaches it) and when an injury is taken (the stepper, or an injury written into a box): action lines in the log, so they show in *At the table* and the GM's Dice log | Owner's ask. Only the crossing is told, not every spend. |
+| 79 | The GM switches maps without moving the players: a map switch no longer sets the shared `table.map` (only the first map shown does, when nothing is shared yet); *Bring players here* in the toolbar sets it, reads *Players are here* once they are, and its tooltip names the map the players are on | Owner's ask: look ahead at another map while the players stay. |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

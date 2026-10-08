@@ -407,10 +407,20 @@
     if (refit) fit();
     document.title = (window.VttConfig.title || 'Table') + ' — ' + mapName();
     preloadNext();
-    // the table's map is shared: whatever the GM shows, the player view follows
-    if (!PLAYER && mapId && (State.state.table || {}).map !== mapId) State.commit('setTableMap', [mapId]);
+    // the players' map is shared state (table.map) and the GM sends them to it on purpose: the
+    // GM may look ahead at another map while the players stay where they are
+    if (!PLAYER && mapId && !(State.state.table || {}).map) State.commit('setTableMap', [mapId]);   // nothing shown yet: this is it
     buildToolbar();
     renderLegend();
+  }
+
+  // what the players see, as a name
+  function playersMapName() {
+    const t = (State.state.table || {}).map;
+    if (!t) return null;
+    const sc = scenes().find((x) => x.id === mapScene(t));
+    const d = Sys.mapDef(t);
+    return [sc && sc.name, d && d.name].filter(Boolean).join(' · ') || t;
   }
 
   // ── the legend (GM only; the map's key, verbatim from the corpus) ──
@@ -1086,6 +1096,11 @@
     toolbar.appendChild(el('div', { class: 'group' }, [clocksBtn]));
 
     const playerBtn = el('button', { class: 'btn', onclick: () => window.open(location.pathname + '?view=player' + (follow ? '' : '&map=' + encodeURIComponent(mapId)), (window.VttConfig.channel || 'vtt') + '-player') }, ['Open player view']);
+    // the players stay on their map until the GM brings them to this one
+    const here = (State.state.table || {}).map === mapId;
+    const bring = el('button', { class: 'btn' + (here ? ' ghost' : ''), title: here ? 'The players are looking at this map' : `The players are on ${playersMapName() || 'no map yet'} — bring them to this one` }, [here ? 'Players are here' : 'Bring players here']);
+    bring.disabled = here;
+    bring.addEventListener('click', () => { State.commit('setTableMap', [mapId]); buildToolbar(); });
     const legendBtn = el('button', { class: 'btn ghost' + (legendOpen ? ' active' : ''), title: 'The map’s key, from the book — for you, not the players' }, ['Legend']);
     legendBtn.disabled = !Sys.legend(mapId);
     legendBtn.addEventListener('click', () => {
@@ -1096,7 +1111,7 @@
     const h = State.history ? State.history() : { undo: 0 };
     const undoBtn = el('button', { class: 'btn ghost', title: 'Undo the last change made in this window (Ctrl+Z)', onclick: () => { State.undo(); refresh(); buildToolbar(); } }, [h.undo ? `Undo (${h.undo})` : 'Undo']);
     undoBtn.disabled = !h.undo;
-    toolbar.appendChild(el('div', { class: 'group last' }, [undoBtn, legendBtn, el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), playerBtn]));
+    toolbar.appendChild(el('div', { class: 'group last' }, [bring, undoBtn, legendBtn, el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), playerBtn]));
   }
 
   function syncHint() {
@@ -1121,6 +1136,7 @@
   Bus.on('state:changed', (p, meta) => {
     if (!(meta && meta.remote)) return;
     refresh();
+    if (!PLAYER && p && p.op && p.op.name === 'setTableMap') buildToolbar();   // the players' map changed elsewhere: the Bring button follows
   });
   Bus.on('state:remote', () => refresh());
   Bus.on('scene:changed', (p, meta) => {

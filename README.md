@@ -82,8 +82,9 @@ the toolbar's map list switches between them; tokens and fog belong to the floor
 GM's scene unless pinned. **Legend** pulls up the map's key, verbatim from the book (the
 Floorplan's numbered rooms), as a panel for the GM only: it is not drawn on the map and never
 reaches players. **Open player view** (`gm/vtt.html?view=player`) is the same map with no controls,
-fog opaque and hidden tokens absent — for the TV, or for a player's device in a session; it
-follows whichever map the GM's table is showing. Map images live in `assets/maps/`;
+fog opaque and hidden tokens absent — for the TV, or for a player's device in a session. The
+players' map is set on purpose: the GM may switch to another floor to look ahead while the players
+stay where they are, and **Bring players here** moves them to the map the GM is looking at. Map images live in `assets/maps/`;
 `system/teeth/table.js` says which scene ships with which maps and where each legend comes from.
 
 **Reset to the beginning of the scenario** (Campaign panel) undoes every scene and clue, empties
