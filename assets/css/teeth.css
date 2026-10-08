@@ -313,6 +313,7 @@ body.play { display: block; }
 .mode-bar.in-head .btn.active { background: var(--blood); border-color: var(--blood); color: #fff; }
 body.play.mode-map, body.play.mode-split { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; overflow: hidden; }
 body.play.mode-map .play-head, body.play.mode-split .play-head, body.play.mode-map .play-banner, body.play.mode-split .play-banner { grid-column: 1 / -1; }
+body.play.mode-map { grid-template-columns: 1fr; }     /* not the GM page's sidebar + main columns body carries */
 body.play.mode-map .play-main { display: none; }
 body.play.mode-map .play-table-wrap { display: block; grid-row: 3; }
 body.play.mode-split { grid-template-columns: minmax(300px, 380px) 1fr; }

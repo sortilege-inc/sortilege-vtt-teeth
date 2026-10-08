@@ -245,6 +245,14 @@ instead — it never landed on the 26 px circle; the table's own handlers were e
 back to the full sheet; at 375×812 the split stacked the map (365 px) over the sheet. No console
 errors. Test member, token, session reverted.
 
+**Map-only fixed, fit on switch (2026-10-08):** decisions 61–62. Proof on localhost, GM on
+localhost (room ETAL9, a Bruiser *Test Player*), player on 127.0.0.1 at 1024×768: the join link
+moved the tab out of room 3UKU2 into ETAL9 and the claim seated it; *Map* gave the frame the whole
+width (left 0, 1024 × 696) with the viewBox at the map's `0 0 2160 1760`; a wheel zoom in map
+view then *Map + sheet* refit it (frame at 380, 644 wide; viewBox back to `0 0 2160 1760`; the
+compact sheet beside it); a zoom in the split then *Map* refit it again; *Sheet* gave the full
+sheet. No console errors. Test member and session reverted.
+
 **Players load their own (2026-09-19, owner's ask):** decision 31. Proof over the deployed
 Worker (version 9de18ac9), GM on localhost, player on 127.0.0.1 (room HN6RU): the player's claim
 screen showed *Load my character file…*; a character file read through the loader's path was
@@ -347,6 +355,8 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 57 | On every map switch the next scene's shipped map is fetched ahead; the player view was proven to keep the iso grid | Review items. |
 | 58 | Rolling autosaves: a minute apart while anything changes, the last three per campaign, in IndexedDB; the Campaign panel lists them with *restore* | Review item: the browser was the only live copy between pack downloads. |
 | 59 | The player's page is one of three views once seated: the sheet full-page (where it starts), the map full-page, or the map beside a compact sheet (actions, tracks, ratings, rolls — nothing to read), chosen in the header or on the sheet's bar; the compact sheet has *Expand the sheet* and *Map only*; the map is the table's player view in a frame made once and kept, so the player's pan and zoom survive switching; on a phone the split stacks the map over the sheet; the choice is remembered per tab | Owner's ask (2026-10-08). A frame rather than a second table in the page: the table stays one module, and it already works as a sibling window on the bus. |
+| 61 | The map fits itself whenever the player's view changes (map ↔ split), on a timer rather than an animation frame so it fires in a background tab too; map-only takes a single column — `body` carries the GM page's sidebar + main columns, and the frame had landed in the 190 px sidebar column | Owner's report with a screenshot (2026-10-08): the map-only view was a 190 px strip beside blank paper. |
+| 62 | A join link (`play.html?s=CODE`) joins its room even when the tab is still seated in another room from last time | Found while proving 61: the tab stayed in the previous evening's room and showed "Your character isn't in the party any more". |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

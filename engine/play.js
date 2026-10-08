@@ -43,8 +43,21 @@
   }
   function applyMode(seated) {
     const m = seated ? mode : 'sheet';
+    const was = MODES.find(([k]) => document.body.classList.contains('mode-' + k));
     MODES.forEach(([k]) => document.body.classList.toggle('mode-' + k, m === k));
     if (m !== 'sheet' && !frame.getAttribute('src')) frame.setAttribute('src', CFG.pages.table + '?view=player');
+    // the frame's size changed with the view: fit the map to it once the layout has settled
+    else if (m !== 'sheet' && (!was || was[0] !== m)) fitFrame();
+  }
+  function fitFrame() {
+    setTimeout(() => {              // a timer, not an animation frame: it fires in a background tab too
+      try {
+        const t = frame.contentWindow && frame.contentWindow.VttTable;
+        if (t) t.fit();
+      } catch (e) {
+        /* not ours to reach */
+      }
+    }, 50);
   }
   function modeBar(cls) {
     return el('div', { class: 'mode-bar ' + (cls || '') }, MODES.map(([k, label]) => {
@@ -218,8 +231,12 @@
   });
 
   render();
-  if (params.get('s') && !Session.current().active) {
-    Session.join(params.get('s'));
+  // a join link joins its room — also when this tab is still seated in another room from last time
+  const linked = (params.get('s') || '').toUpperCase();
+  const cur = Session.current();
+  if (linked && (!cur.active || (cur.info && cur.info.code !== linked))) {
+    if (cur.active) Session.leave();
+    Session.join(linked);
     render();
   }
 })();
