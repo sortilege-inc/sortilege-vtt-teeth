@@ -581,8 +581,8 @@
         });
         if (drag.group.length === 1) State.commit('setTokenPosition', [mapId, drag.token.id, drag.token.x, drag.token.y]);   // the op a player may send
         else persist();                                                                                                      // the group as one change, one undo
-      } else if (!PLAYER && drag.token.kind !== 'party') {
-        openTokenMenu(drag.token, drag.at.x, drag.at.y);     // a click on an NPC: its options
+      } else if (!PLAYER) {
+        openTokenMenu(drag.token, drag.at.x, drag.at.y);     // a click: the token's options (a party token's open its sheet from there)
       } else {
         Sys.selectToken(drag.token);
       }
@@ -842,11 +842,11 @@
   }
 
   function buildMenu(t) {
-    // the tokens the options act on: the selection when the token is in it (party tokens keep their own ring and face)
+    // the tokens the options act on: the selection when the token is in it
     const targets = selectedIds.has(t.id) && selectedIds.size > 1 ? selectedTokens() : [t];
-    const npcs = targets.filter((x) => x.kind !== 'party');
     const refreshMenu = () => { const fresh = buildMenu(t); fresh.style.left = menu.style.left; fresh.style.top = menu.style.top; menu.replaceWith(fresh); menu = fresh; };
-    const apply = (fn) => { (npcs.length ? npcs : targets).forEach(fn); persist(); renderTokens(); refreshMenu(); };
+    const apply = (fn) => { targets.forEach(fn); persist(); renderTokens(); refreshMenu(); };
+    const openSheet = targets.length === 1 && (t.kind === 'party' || (t.kind === 'cast' && t.ref)) ? el('button', { class: 'btn', onclick: () => { Sys.selectToken(t); closeMenu(); } }, [t.kind === 'party' ? 'Open sheet' : 'Open entry']) : null;
     const title = targets.length > 1 ? `${targets.length} tokens` : t.label;
     const palette = Sys.tokenPalette ? Sys.tokenPalette() : [];
     const current = t.color || Sys.tokenColor(t);
@@ -868,7 +868,7 @@
     const hide = el('button', { class: 'btn ghost', onclick: () => { const h = targets.some((x) => !x.hidden); targets.forEach((x) => (x.hidden = h)); persist(); renderTokens(); closeMenu(); } }, [targets.some((x) => !x.hidden) ? 'Hide from players' : 'Reveal to players']);
     const rename = targets.length === 1 ? el('button', { class: 'btn ghost', onclick: () => { const n = prompt('Label', t.label); if (n) { t.label = n; persist(); renderTokens(); } closeMenu(); } }, ['Rename']) : null;
     const remove = el('button', { class: 'btn danger', onclick: () => { removeTokens(targets.map((x) => x.id)); closeMenu(); } }, [targets.length > 1 ? `Remove ${targets.length} tokens` : 'Remove token']);
-    const body = el('div', { class: 'vtt-menu token-menu' }, [el('h4', {}, [title]), ringRow, iconRow, labelRow, sizeRow, el('div', { class: 'row' }, [hide, rename, remove])]);
+    const body = el('div', { class: 'vtt-menu token-menu' }, [el('h4', {}, [title]), ringRow, iconRow, labelRow, sizeRow, el('div', { class: 'row' }, [openSheet, hide, rename, remove])]);
     const extra = Sys.tokenMenu(t, () => { persist(); renderTokens(); closeMenu(); });
     if (extra) body.appendChild(extra);
     return body;

@@ -514,6 +514,37 @@
       ])));
       container.appendChild(el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, ['Books for reference']), el('div', { class: 'prop-v' }, [bookBox])]));
 
+      // Back to the beginning of the scenario: scenes undone, clues unrevealed, clocks empty, the
+      // log cleared, every map's tokens, shapes and fog reveals gone, every sheet as it was before
+      // play (tracks, counters, injuries and the behaviours at the limit reset; ratings, abilities
+      // and other choices kept) and every character unclaimed. One op, one undo.
+      const reset = button('Reset to the beginning of the scenario', () => {
+        const party0 = S().party || [];
+        const claimed = Object.keys((window.VttSession && window.VttSession.current().claims) || {});
+        const what = [
+          'undo every scene and clue', 'empty every clock', 'clear the dice log',
+          'clear every map\u2019s tokens, shapes and fog reveals',
+          `reset ${party0.length} character sheet${party0.length === 1 ? '' : 's'} to before play` + (claimed.length ? ` and release ${claimed.length} claimed` : ''),
+        ];
+        if (!confirm('Reset to the beginning of the scenario? This will:\n\u2022 ' + what.join('\n\u2022 ') + '\n\nUndo brings it all back.')) return;
+        const maps = {};
+        Object.keys(S().maps || {}).forEach((k) => {
+          const m = JSON.parse(JSON.stringify(S().maps[k]));
+          m.tokens = [];
+          m.effects = [];
+          m.fog = Object.assign({}, m.fog || {}, { revealed: [] });
+          maps[k] = m;
+        });
+        State.commit('setKeys', [{
+          current: {}, progress: {}, clues: {}, log: [],
+          clocks: (S().clocks || []).map((c) => Object.assign({}, c, { filled: 0 })),
+          party: party0.map((m) => Object.assign({}, m, { live: window.TeethSheet.resetLive(m) })),
+          maps,
+        }]);
+        if (window.VttSession && claimed.length) claimed.forEach((id) => window.VttSession.unclaim(id));
+      }, 'danger');
+      container.appendChild(el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, ['Scenario']), el('div', { class: 'prop-v' }, [reset, el('div', { class: 'muted' }, ['Scenes, clues, clocks, the log, the maps\u2019 tokens and fog, every sheet\u2019s tracks, injuries and behaviours, and every claim \u2014 back to the start. Undo brings it back.'])])]));
+
       // the player characters: made from a playbook here or loaded from a character file; they
       // are the pack's `party`, so Save pack carries them and Restore pack brings them back
       const party = S().party || [];

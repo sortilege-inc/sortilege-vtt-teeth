@@ -70,7 +70,7 @@ Scene panel's **On the table** puts the scene's figures and the party on its map
 **Open table** puts the current scene's map in its own window (`gm/vtt.html`): grid calibration,
 tokens for the party and the cast (add them from the toolbar; drag to move; click an NPC for its
 options — ring colour, one of a dozen generic faces, name below or on hover, size in squares — or
-hide, rename, remove; drag a box to select several and move them together; Space, the middle
+hide, rename, remove, and a party token's *Open sheet*; drag a box to select several and move them together; Space, the middle
 button or the Pan tool pans), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
 right-click to label it; Clear takes them all), fog with reveal rectangles; the grid can be
 square or **iso** (a diamond lattice with an adjustable ratio, on by default for the isometric
@@ -86,6 +86,11 @@ fog opaque and hidden tokens absent — for the TV, or for a player's device in 
 follows whichever map the GM's table is showing. Map images live in `assets/maps/`;
 `system/teeth/table.js` says which scene ships with which maps and where each legend comes from.
 
+**Reset to the beginning of the scenario** (Campaign panel) undoes every scene and clue, empties
+the clocks, clears the log, strips every map's tokens, shapes and fog reveals, puts every sheet back
+to before play (tracks, counters, injuries and behaviours; ratings, abilities and other choices
+stay) and releases every claim — one op, one Undo.
+
 ## Sessions — players on their own devices
 
 **Start session** in the sidebar creates a room and shows a code and a join link
@@ -95,8 +100,11 @@ made on the site's creator: it joins the party (and so the campaign pack) and is
 moment the room is online —
 and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes, an
 **Actions** bar (Push +1D / +1E and Assist at the book's cost in Guts or Stress, logged; free
-+1D / +1E toggles for the next roll), reminders of hysteria, injury and a used-up resource, and
-*At the table*, everyone's rolls; a banner with *Retry now* appears if the connection drops; they
++1D / +1E toggles for the next roll; the Effect the GM set, from the book's Poor—Limited—Reasonable—Superb,
+so the roll line names the Effect reached; the chosen special abilities as buttons that spend, arm
+and log what their text says; each injury level's boxes with − and +, the worst one's penalty on the
+roll), a blood-red bar across the top once a behaviour at the limit or a mortal injury is set, and
+*At the table*, everyone's rolls, in a column on the right (folded beside the map); a banner with *Retry now* appears if the connection drops; they
 can switch the page to the map, or to the map with a compact sheet beside it (and back to the
 full sheet), place their own token on the map and move it (the map and everyone else's tokens
 stay the GM's), and **Download my character** saves

@@ -228,25 +228,122 @@ window.TeethSheet = (function () {
   // from a push or an assist. Per member, per window, cleared by the roll it goes on.
   const armed = {};
   function armedFor(m) {
-    return armed[m.id] || (armed[m.id] = { dice: 0, effect: 0, why: [] });
+    return armed[m.id] || (armed[m.id] = { dice: 0, effect: 0, why: [], level: 2, injuryApplies: true });
+  }
+  // The book's range of Effect: "Poor—Limited—Reasonable—Superb". The GM sets it before the roll;
+  // the sheet carries the level set (Reasonable until changed), +1E / -1E move along it.
+  const EFFECT_LEVELS = ['Poor', 'Limited', 'Reasonable', 'Superb'];
+
+  // ── injuries: the book's levels, the boxes filled, the penalty the worst one carries ──
+  function injuryLevels(m) {
+    const t = D.entity(m.templateId);
+    const own = t ? D.byType('Injury Level', [t.book]) : [];
+    return (own.length ? own : D.byType('Injury Level', books())).filter((lv) => (D.propValue(lv, 'Boxes') || 0) > 0).sort((a, b) => (D.propValue(a, 'Level') || 0) - (D.propValue(b, 'Level') || 0));
+  }
+  function injurySlots(m, lv) {
+    const lines = (m.live.texts || {}).Injuries || [];
+    const n = D.propValue(lv, 'Boxes') || 0;
+    return Array.from({ length: n }, (_, i) => {
+      const key = lv.name + ' ' + (i + 1);
+      return { key, line: lines.find((x) => typeof x === 'object' && x.slot === key && x.text) || null };
+    });
+  }
+  // the level's own words, and what they do to a roll: "-1E" / "Less Effect" steps the Effect down,
+  // "-1D" / "less one dice" takes a die, the mortal level's rule is shown as it is
+  function injuryPenalty(lv) {
+    const pen = D.propValue(lv, 'Penalty') || '';
+    const desc = D.propValue(lv, 'Description') || lv.desc || '';
+    const both = pen + ' ' + desc;
+    // the core prints no Penalty field: its sentence on the penalty stands in ("Less Effect for Actions relevant to the Injury.")
+    const sentence = (desc.match(/[^.]*(?:-1[DE]|less (?:one|1) dice|less effect|cannot act)[^.]*\./i) || [''])[0].trim();
+    const text = pen || sentence || desc;
+    if (/-1D|less (?:one|1) dice/i.test(both)) return { text, dice: -1, effect: 0 };
+    if (/-1E|less effect/i.test(both)) return { text, dice: 0, effect: -1 };
+    return { text: pen && sentence ? sentence : (desc || pen), dice: 0, effect: 0 };
+  }
+  function worstInjury(m) {
+    let worst = null;
+    injuryLevels(m).forEach((lv) => {
+      if (injurySlots(m, lv).some((s) => s.line)) worst = lv;
+    });
+    return worst;
+  }
+  // take an injury at a level (the next empty box; a full level goes up a tier, as the book says), or clear one
+  function takeInjury(m, lv) {
+    const levels = injuryLevels(m);
+    let at = levels.indexOf(lv);
+    while (at !== -1 && at < levels.length) {
+      const slot = injurySlots(m, levels[at]).find((s) => !s.line);
+      if (slot) {
+        const lines = (m.live.texts || {}).Injuries || [];
+        patch(m, 'texts', { Injuries: lines.concat([{ slot: slot.key, text: 'injury' }]) });
+        return;
+      }
+      at += 1;
+    }
+  }
+  function healInjury(m, lv) {
+    const filled = injurySlots(m, lv).filter((s) => s.line);
+    if (!filled.length) return;
+    const key = filled[filled.length - 1].key;
+    const lines = (m.live.texts || {}).Injuries || [];
+    patch(m, 'texts', { Injuries: lines.filter((x) => !(typeof x === 'object' && x.slot === key)) });
   }
 
   function doRoll(m, axis, rating, extra) {
     const r = rollEntity();
     const a = armedFor(m);
-    const bonus = (extra || 0) + a.dice;
+    const worst = a.injuryApplies ? worstInjury(m) : null;
+    const pen = worst ? injuryPenalty(worst) : null;
+    const bonus = (extra || 0) + a.dice + (pen ? pen.dice : 0);
     const pool = rollPool(rating + bonus);
     const res = ladder(pool.kept, r);
+    const level = Math.max(0, Math.min(EFFECT_LEVELS.length - 1, a.level + a.effect + (pen ? pen.effect : 0)));
     const entry = {
       at: new Date().toISOString(), kind: 'roll', memberId: m.id, who: m.name, axis, rating: rating + bonus,
       base: rating, extra: bonus, effect: a.effect, why: a.why.slice(),
+      effectBase: EFFECT_LEVELS[a.level], effectLevel: EFFECT_LEVELS[level],
+      injury: worst ? { name: worst.name, penalty: pen.text, dice: pen.dice, effect: pen.effect } : null,
       dice: pool.dice, zero: pool.zero, band: res.band, text: res.text,
     };
-    armed[m.id] = { dice: 0, effect: 0, why: [] };
+    a.dice = 0;                    // in place: the sheet's actions bar holds this same object
+    a.effect = 0;
+    a.why = [];
     if (m.preview) return entry;
     State.commit('appendLog', [entry]);
     Bus.emit('roll', entry);
     return entry;
+  }
+
+  // ── special abilities: the chosen ones as buttons; a press spends what the text says, arms
+  // what it grants (+1D, +1E, "Greater Effect") and logs the use for the table ──
+  function abilityLists(sp) {
+    return sp.lists.filter((l) => /Abilit/i.test(l.type || '') || /Abilit/i.test(l.name));
+  }
+  function abilityText(e) {
+    return e ? (e.desc || D.propValue(e, 'Text') || D.propValue(e, 'Description') || '') : '';
+  }
+  function abilityTerms(text) {
+    const cost = /(?:spend(?:ing)?|using|use|for|costs?|takes?|with)\s+(\d+)\s+(Guts|Stress)/i.exec(text);
+    const free = /no (?:Guts|Stress) cost/i.test(text);
+    const dice = /\+(\d)D/i.exec(text);
+    const eff = /\+(\d)E/i.exec(text);
+    return { cost: cost && !free ? { n: parseInt(cost[1], 10), res: cost[2] } : null, dice: dice ? parseInt(dice[1], 10) : 0, effect: eff ? parseInt(eff[1], 10) : (/Greater Effect/i.test(text) ? 1 : 0) };
+  }
+  function chosenAbilities(m, sp) {
+    const out = [];
+    abilityLists(sp).forEach((l) => {
+      const chosen = (m.live.lists || {})[l.name] || [];
+      l.items.forEach((it) => {
+        if (!l.fixed && chosen.indexOf(it.hash) === -1) return;
+        const e = D.entity(it.hash);
+        if (!e) return;
+        const text = abilityText(e);
+        const label = e.type === 'Sheet Ability' ? (text.length > 56 ? text.slice(0, 54).replace(/\s+\S*$/, '') + '…' : text) : e.name;
+        out.push({ e, text, label: label || e.name });
+      });
+    });
+    return out;
   }
 
   // ── named actions: Push, Assist (the book's costs: 2 and 1 of Guts or Stress) ──
@@ -313,11 +410,86 @@ window.TeethSheet = (function () {
       return el('button', { class: 'btn ghost tiny' + (on ? ' active' : ''), type: 'button', title: `Carry +1${what} on the next roll without spending (an item, a bargain with the GM, an ally's assist)`, onclick: () => { if (what === 'D') a.dice = on ? 0 : 1; else a.effect = on ? 0 : 1; redraw(); } }, [`+1${what} next roll${on ? ' ✓' : ''}`]);
     };
     const armedNote = a.dice || a.effect ? el('span', { class: 'muted' }, [`next roll: ${a.dice ? '+' + a.dice + 'D ' : ''}${a.effect ? '+' + a.effect + 'E' : ''}`]) : null;
+    // the Effect the GM set for the action (the book's range), carried until changed
+    const levelSel = el('select', { class: 'vtt-num effect-level', title: 'The Effect the GM set before the roll — +1E and injuries move along it' }, EFFECT_LEVELS.map((lv, i) => el('option', { value: String(i), selected: i === a.level || null }, [lv])));
+    levelSel.addEventListener('change', () => { a.level = parseInt(levelSel.value, 10); redraw(); });
+    const effectRow = el('div', { class: 'chiprow' }, [el('span', { class: 'muted' }, ['Effect']), levelSel, ruleLink(m, ['Effect']), toggle('D'), toggle('E'), armedNote]);
+    // injuries: each level's boxes with take / heal, for the GM and the player alike
+    const worst = worstInjury(m);
+    const injuryRows = injuryLevels(m).map((lv) => {
+      const slots = injurySlots(m, lv);
+      const pen = injuryPenalty(lv);
+      const marks = el('span', { class: 'injury-marks' }, slots.map((s) => el('span', { class: 'mark' + (s.line ? ' on' : ''), title: s.line ? s.line.text : 'empty' })));
+      const minus = button('−', () => { healInjury(m, lv); redraw(); }, 'ghost tiny');
+      const plus = button('+', () => { takeInjury(m, lv); redraw(); }, 'ghost tiny');
+      if (!slots.some((s) => s.line)) minus.disabled = true;
+      if (slots.every((s) => s.line) && lv === injuryLevels(m)[injuryLevels(m).length - 1]) plus.disabled = true;
+      return el('div', { class: 'injury-row' + (worst === lv ? ' worst' : '') }, [E.link({ hash: lv.id, name: lv.name }), marks, minus, plus, el('span', { class: 'muted' }, [pen.text])]);
+    });
+    const applies = el('label', { class: 'muted injury-applies' }, [el('input', { type: 'checkbox', checked: a.injuryApplies || null, onchange: (ev) => { a.injuryApplies = ev.target.checked; redraw(); } }), ' the injury applies to the next roll']);
+    const injurySection = injuryRows.length ? el('div', { class: 'injuries' }, [el('div', { class: 'chiprow' }, [el('span', { class: 'muted' }, ['Injuries']), worst ? applies : null]), ...injuryRows]) : null;
+    // the abilities chosen, as buttons
+    const abilities = chosenAbilities(m, sp);
+    const abilityBtns = abilities.map((ab) => {
+      const terms = abilityTerms(ab.text);
+      const b = button(ab.label, () => {
+        if (terms.cost && terms.cost.res === res.name) spend(m, res, terms.cost.n);
+        if (terms.dice) a.dice += terms.dice;
+        if (terms.effect) a.effect += terms.effect;
+        if (terms.dice || terms.effect) a.why.push(ab.e.name);
+        logAction(m, `${m.name} uses ${ab.e.type === 'Sheet Ability' ? 'an ability' : ab.e.name}: ${ab.text}`);
+        redraw();
+      }, 'ghost tiny ability');
+      b.title = ab.text + (terms.cost ? ` — costs ${terms.cost.n} ${terms.cost.res}` : '') + (terms.dice || terms.effect ? ` — arms ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} for the next roll` : '');
+      if (terms.cost && terms.cost.res === res.name && left < terms.cost.n) { b.disabled = true; b.title = `No ${res.name} left — ${left} of ${terms.cost.n} needed`; }
+      return b;
+    });
+    const abilityRow = abilityBtns.length ? el('div', { class: 'chiprow abilities' }, [el('span', { class: 'muted' }, ['Abilities']), ...abilityBtns]) : null;
     return el('section', { class: 'actions-bar' }, [
       el('h4', {}, ['Actions', el('span', { class: 'muted' }, [` · ${res.name} ${cur} / ${res.max}`]), ' ', ruleLink(m, ['Push themselves', 'Guts', 'Stress'])]),
       el('div', { class: 'chiprow' }, [pushBtn('D'), pushBtn('E'), others.length ? who : null, assistBtn, ruleLink(m, ['Assist a teammate', 'Team Actions'])]),
-      el('div', { class: 'chiprow' }, [toggle('D'), toggle('E'), armedNote]),
+      effectRow,
+      abilityRow,
+      injurySection,
     ]);
+  }
+
+  // the behaviours at the limit (Hysteria, Aberrant, Erratic) and a mortal injury, in the book's words,
+  // across the top of the sheet once set
+  function alerts(m) {
+    const out = [];
+    const picks = m.live.picks || {};
+    BEHAVIOUR_PICKS.forEach((name) => {
+      (picks[name] || []).forEach((h) => {
+        const e = D.entity(h);
+        out.push({ head: `${name}: ${e ? e.name : h}`, text: e ? (e.desc || D.propValue(e, 'Text') || D.propValue(e, 'Description') || '') : '', ref: e });
+      });
+    });
+    const worst = worstInjury(m);
+    if (worst && !injuryPenalty(worst).dice && !injuryPenalty(worst).effect) out.push({ head: worst.name, text: injuryPenalty(worst).text, ref: worst });
+    return out;
+  }
+
+  // the sheet as it was before play: tracks, counters and text lines (the injuries) at their start,
+  // the behaviours at the limit unset; ratings, abilities, items and the other choices kept
+  function resetLive(m) {
+    const t = D.entity(m.templateId);
+    const live = JSON.parse(JSON.stringify(m.live || {}));
+    if (!t) return live;
+    const sp = spec(t);
+    live.tracks = {};
+    sp.tracks.forEach((tr) => (live.tracks[tr.name] = tr.start));
+    live.counters = {};
+    sp.counters.forEach((c) => (live.counters[c.name] = c.start));
+    live.texts = {};
+    sp.texts.forEach((tx) => (live.texts[tx.name] = tx.start.slice()));
+    sp.header.forEach((h) => {
+      const mm = /^Starting (.+)$/.exec(h.name);
+      if (mm && live.tracks[mm[1]] != null && typeof h.value === 'number') live.tracks[mm[1]] = h.value;
+    });
+    live.picks = Object.assign({}, live.picks || {});
+    BEHAVIOUR_PICKS.forEach((name) => delete live.picks[name]);
+    return live;
   }
 
   // What the token and the sheet head remind the table of: the behaviour the book imposes at
@@ -388,7 +560,7 @@ window.TeethSheet = (function () {
     ]);
   }
 
-  function ratingRows(m, r, log) {
+  function ratingRows(m, r, log, redraw) {
     const cur = (m.live.ratings || {})[r.name] || {};
     const total = r.axes.reduce((a, k) => a + (cur[k] || 0), 0);
     return el('section', { class: 'ratings' }, [
@@ -402,6 +574,7 @@ window.TeethSheet = (function () {
           button('Roll', () => {
             const entry = doRoll(m, axis, v);
             if (log) log(entry);
+            if (redraw && !m.preview) redraw();
           }, 'ghost tiny roll'),
         ]);
       }),
@@ -480,9 +653,11 @@ window.TeethSheet = (function () {
 
   function rollLine(entry) {
     return el('div', { class: 'roll-line band-' + entry.band.replace(/[^a-z0-9]/gi, '').toLowerCase() }, [
-      el('span', { class: 'roll-who' }, [entry.who + ' · ' + entry.axis + ' ' + (entry.extra ? `${entry.base} +${entry.extra}D` : entry.rating) + (entry.effect ? ` +${entry.effect}E` : '')]),
+      el('span', { class: 'roll-who' }, [entry.who + ' · ' + entry.axis + ' ' + (entry.extra ? `${entry.base} ${entry.extra > 0 ? '+' : ''}${entry.extra}D` : entry.rating) + (entry.effect ? ` +${entry.effect}E` : '')]),
       el('span', { class: 'roll-dice' }, entry.dice.map((d) => el('span', { class: 'die' + (entry.zero && d !== Math.min.apply(null, entry.dice) ? ' dropped' : '') }, [String(d)]))),
       el('b', {}, [entry.band]),
+      entry.effectLevel ? el('span', { class: 'roll-effect' }, ['Effect: ', el('b', {}, [entry.effectLevel]), entry.effectLevel !== entry.effectBase ? ` (${entry.effectBase}${entry.effect ? ' +' + entry.effect + 'E' : ''}${entry.injury && entry.injury.effect ? ' ' + entry.injury.effect + 'E injured' : ''})` : '']) : null,
+      entry.injury ? el('span', { class: 'roll-injury' }, [`${entry.injury.name}: ${entry.injury.penalty}`]) : null,
       entry.text ? el('span', { class: 'roll-text' }, [entry.text]) : null,
     ]);
   }
@@ -520,7 +695,7 @@ window.TeethSheet = (function () {
       actionsBar(m, sp, opts, redraw),
       sp.tracks.length ? el('section', { class: 'tracks' }, [el('h4', {}, ['Tracks']), ...sp.tracks.map((tr) => trackRow(m, tr))]) : null,
       sp.counters.length ? el('section', { class: 'counters' }, sp.counters.map((c) => counterRow(m, c))) : null,
-      ...sp.ratings.map((r) => ratingRows(m, r, log)),
+      ...sp.ratings.map((r) => ratingRows(m, r, log, redraw)),
       el('section', { class: 'rolls' }, [el('h4', {}, ['Rolls']), rollLog]),
       ...(opts.compact ? [] : [
       sp.picks.length ? el('section', {}, [el('h4', {}, ['Choices']), ...sp.picks.map((pk) => pickRow(m, pk))]) : null,
@@ -537,7 +712,9 @@ window.TeethSheet = (function () {
       ]),
       ]),
     ]);
-    const article = el('article', { class: 'sheet' + (opts.compact ? ' compact' : '') }, [header, body]);
+    const alertRows = alerts(m);
+    const alert = alertRows.length ? el('div', { class: 'sheet-alert' }, alertRows.map((r) => el('div', { class: 'alert-row' }, [el('b', {}, [r.head]), r.text ? el('span', {}, [' — ' + r.text]) : null]))) : null;
+    const article = el('article', { class: 'sheet' + (opts.compact ? ' compact' : '') }, [alert, header, body]);
     return article;
   }
 
@@ -591,5 +768,5 @@ window.TeethSheet = (function () {
     return Object.assign({}, m, { id: State.genId('pc'), notes: '', preview: undefined, source: { kind: 'file', name: fileName || null, exportedAt: obj.exportedAt || null, loadedAt: new Date().toISOString() } });
   }
 
-  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter, conditions };
+  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter, conditions, resetLive, worstInjury, injuryPenalty };
 })();

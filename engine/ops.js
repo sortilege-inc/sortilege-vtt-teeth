@@ -91,6 +91,7 @@
     setPartyNotes: (s, [id]) => { const m = (s.party || []).find((x) => x.id === id); return m ? ['setPartyNotes', [id, m.notes || '']] : null; },
     setPartyPlayerNotes: (s, [id]) => { const m = (s.party || []).find((x) => x.id === id); return m ? ['setPartyPlayerNotes', [id, m.playerNotes || '']] : null; },
     setMapState: (s, [mapId]) => ['setMapState', [mapId, clone((s.maps || {})[mapId])]],
+    setKeys: (s, [obj]) => { const prev = {}; Object.keys(obj || {}).forEach((k) => (prev[k] = clone(s[k] === undefined ? null : s[k]))); return ['setKeys', [prev]]; },
     setTableMap: (s) => ['setTableMap', [clone((s.table || {}).map)]],
     placeToken: (s, [mapId]) => ((s.maps || {})[mapId] ? ['setMapState', [mapId, clone(s.maps[mapId])]] : null),
     setTokenPosition: (s, [mapId, tid]) => { const t = (((s.maps || {})[mapId] || {}).tokens || []).find((x) => x.id === tid); return t ? ['setTokenPosition', [mapId, tid, t.x, t.y]] : null; },
@@ -118,6 +119,13 @@
     return s[key];
   }
 
+  // several shared keys at once, GM only — the scenario reset sends the fresh values the system
+  // computed (progress, clues, clocks, log, party, maps, current); the inverse holds what they were
+  register('setKeys', (s, obj) => {
+    Object.keys(obj || {}).forEach((k) => {
+      if (SHARED_KEYS.indexOf(k) !== -1) s[k] = obj[k];
+    });
+  });
   register('setCampaign', (s, patch) => {
     s.campaign = Object.assign({}, s.campaign || {}, patch);
   });

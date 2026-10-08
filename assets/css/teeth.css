@@ -333,6 +333,17 @@ body.play.mode-split { grid-template-columns: minmax(300px, 380px) 1fr; }
 body.play.mode-split .play-main { grid-row: 3; grid-column: 1; max-width: none; margin: 0; padding: 0.6rem; overflow: auto; border-right: 1px solid var(--ink); }
 body.play.mode-split .play-table-wrap { display: block; grid-row: 3; grid-column: 2; }
 .play-card.compact .play-bar { margin-bottom: 0.4rem; }
+body.play.mode-sheet .play-main { max-width: 1140px; }
+.play-card.with-feed { display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 1.2rem; align-items: start; }
+.play-card.with-feed .feed-col { position: sticky; top: 0.6rem; max-height: calc(100vh - 1.2rem); overflow: auto; border-left: 1px solid var(--rule); padding-left: 1rem; }
+.play-card.with-feed .feed-col .table-feed { margin: 0; }
+.feed-fold { margin-top: 0.6rem; border-top: 1px solid var(--rule); padding-top: 0.3rem; }
+.feed-fold summary { font-family: var(--sc); letter-spacing: 0.05em; cursor: pointer; }
+.feed-fold .table-feed h4 { display: none; }
+@media (max-width: 900px) {
+  .play-card.with-feed { grid-template-columns: 1fr; }
+  .play-card.with-feed .feed-col { position: static; max-height: none; border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 0.4rem; }
+}
 .sheet.compact .sheet-head h2 { font-size: 1.3rem; }
 .sheet.compact .sheet-head.with-portrait { grid-template-columns: 56px 1fr; }
 .sheet.compact .sheet-head.with-portrait .portrait { width: 56px; height: 70px; }
@@ -439,6 +450,20 @@ a.card { text-decoration: none; display: block; }
 .chip.warn { border-color: var(--blood); color: var(--blood); margin-left: 0; }
 .token.afflicted .ring-outline { stroke-dasharray: 3 3; }
 .table-feed { margin: 0.4rem 0 0.8rem; }
+.sheet-alert { background: var(--blood); color: #fff; padding: 0.45rem 0.8rem; margin: 0 0 0.6rem; border: 1px solid var(--ink); font-family: var(--serif); }
+.sheet-alert .alert-row { padding: 0.1rem 0; }
+.sheet-alert b { font-family: var(--sc); letter-spacing: 0.05em; text-transform: uppercase; }
+.roll-effect, .roll-injury { font-size: 0.85rem; color: var(--ink-2); margin-left: 0.4rem; }
+.roll-injury { color: var(--blood); }
+.effect-level { width: auto; }
+.actions-bar .abilities .btn.ability { white-space: normal; text-align: left; max-width: 100%; }
+.actions-bar .injuries { margin-top: 0.3rem; }
+.injury-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; padding: 0.1rem 0; flex-wrap: wrap; }
+.injury-row.worst { color: var(--blood); }
+.injury-marks .mark { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--ink); margin-right: 2px; vertical-align: middle; background: var(--paper); }
+.injury-marks .mark.on { background: var(--blood); }
+.injury-row .btn.tiny { margin-left: 0; min-width: 1.6rem; }
+.injury-applies input { vertical-align: middle; }
 .table-feed h4 { margin-bottom: 0.2rem; }
 .roll-line.action { font-style: italic; color: var(--ink-2); }
 .banner { padding: 0.5rem 0.8rem; margin: 0.4rem 0 0.8rem; border: 1px solid var(--rule); background: #f6efdf; font-size: 0.9rem; }

@@ -27,6 +27,14 @@
       return 'sheet';
     }
   })();
+  const FEED_KEY = (CFG.storagePrefix || 'sortilege-vtt') + ':play:feed';
+  let feedOpen = (() => {
+    try {
+      return sessionStorage.getItem(FEED_KEY) !== '0';
+    } catch (e) {
+      return true;
+    }
+  })();
   const frame = el('iframe', { class: 'play-table', title: 'The table' });
   const tableWrap = el('div', { class: 'play-table-wrap' }, [frame]);
   const bannerEl = el('div', { class: 'play-banner' });
@@ -189,7 +197,13 @@
     ]);
     const clocks = (State.state.clocks || []).filter((c) => c.visible !== false);
     const strip = clocks.length ? el('div', { class: 'clock-strip' }, clocks.map((c) => el('div', { class: 'clock-row' }, [el('div', { class: 'track-head' }, [el('span', { class: 'track-name' }, [c.name]), el('span', { class: 'muted' }, [`${c.filled} / ${c.segments}`])]), el('div', { class: 'boxes clock' }, Array.from({ length: c.segments }, (_, i) => el('span', { class: 'box' + (i < c.filled ? ' on' : '') })))]))) : null;
-    return el('div', { class: 'play-card wide' + (split ? ' compact' : '') }, [bar, strip, split ? null : feed, Sys.liveSheet(m, { player: true, compact: split }), split ? feed : null]);
+    // full page: the feed in its own column on the right; beside the map: folded under its heading
+    if (split) {
+      const fold = el('details', { class: 'feed-fold', open: feedOpen || null }, [el('summary', {}, ['At the table', el('span', { class: 'muted' }, [feedItems.length ? ` · ${feedItems.length}` : ' · nothing rolled yet'])]), feed]);
+      fold.addEventListener('toggle', () => { feedOpen = fold.open; try { sessionStorage.setItem(FEED_KEY, feedOpen ? '1' : '0'); } catch (e) { /* no storage */ } });
+      return el('div', { class: 'play-card wide compact' }, [bar, strip, Sys.liveSheet(m, { player: true, compact: true }), fold]);
+    }
+    return el('div', { class: 'play-card wide with-feed' }, [el('div', { class: 'sheet-col' }, [bar, strip, Sys.liveSheet(m, { player: true })]), el('aside', { class: 'feed-col' }, [feed])]);
   }
 
   function render() {
