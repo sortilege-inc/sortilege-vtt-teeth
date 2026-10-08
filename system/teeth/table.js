@@ -342,10 +342,13 @@ window.VttSystem = (function () {
   function downloadCharacter(m) {
     return window.TeethSheet.downloadCharacter(m);
   }
+  function rollLine(entry) {          // the player's page draws the table's rolls with the system's line
+    return window.TeethSheet.rollLine(entry);
+  }
   function memberSubtitle(m) {
     const t = D.entity(m.templateId);
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, rollLine, memberSubtitle, MODULE_MAPS };
 })();
