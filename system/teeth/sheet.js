@@ -278,6 +278,7 @@ window.TeethSheet = (function () {
       if (slot) {
         const lines = (m.live.texts || {}).Injuries || [];
         patch(m, 'texts', { Injuries: lines.concat([{ slot: slot.key, text: 'injury' }]) });
+        logAction(m, `${m.name} takes a ${levels[at].name} injury — ${injuryPenalty(levels[at]).text}`);
         return;
       }
       at += 1;
@@ -391,9 +392,16 @@ window.TeethSheet = (function () {
     State.commit('appendLog', [entry]);
     return entry;
   }
+  // a track set to a value; Guts or Stress reaching its limit is told to the table
+  function setTrack(m, tr, n) {
+    const cur = (m.live.tracks || {})[tr.name] || 0;
+    const next = Math.max(tr.min || 0, Math.min(tr.max, n));
+    patch(m, 'tracks', { [tr.name]: next });
+    if (next >= tr.max && cur < tr.max && /^(Guts|Stress)$/.test(tr.name)) logAction(m, `${m.name} has used up their ${tr.name} (${next} / ${tr.max})`);
+  }
   function spend(m, res, n) {
     const cur = (m.live.tracks || {})[res.name] || 0;
-    patch(m, 'tracks', { [res.name]: Math.min(res.max, cur + n) });
+    setTrack(m, res, cur + n);
   }
   function actionsBar(m, sp, opts, redraw) {
     const res = resourceOf(sp);
@@ -575,7 +583,7 @@ window.TeethSheet = (function () {
     const hit = thresholds.filter((th) => v >= th.at).pop();
     return el('div', { class: 'track' }, [
       el('div', { class: 'track-head' }, [el('span', { class: 'track-name' }, [tr.name]), el('span', { class: 'muted' }, [`${v} / ${tr.max}`])]),
-      boxes(tr.max, v, (n) => patch(m, 'tracks', { [tr.name]: Math.max(tr.min, n) })),
+      boxes(tr.max, v, (n) => setTrack(m, tr, n)),
       hit ? el('div', { class: 'threshold' }, [hit.text]) : null,
     ]);
   }
@@ -673,6 +681,7 @@ window.TeethSheet = (function () {
               return el('input', { type: 'text', class: 'text injury', placeholder: '—', value: cur ? cur.text : '', onchange: (ev) => {
                 const rest = lines.filter((x) => !(typeof x === 'object' && x.slot === key));
                 patch(m, 'texts', { [tx.name]: ev.target.value ? rest.concat([{ slot: key, text: ev.target.value }]) : rest });
+                if (ev.target.value && !(cur && cur.text)) logAction(m, `${m.name} takes a ${lv.name} injury: ${ev.target.value} — ${injuryPenalty(lv).text}`);
               } });
             }),
           ]);
