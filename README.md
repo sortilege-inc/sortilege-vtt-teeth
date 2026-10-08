@@ -95,7 +95,9 @@ and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their o
 **Actions** bar (Push +1D / +1E and Assist at the book's cost in Guts or Stress, logged; free
 +1D / +1E toggles for the next roll), reminders of hysteria, injury and a used-up resource, and
 *At the table*, everyone's rolls; a banner with *Retry now* appears if the connection drops; they
-can open the table in player view and move their own token, and **Download my character** saves
+can switch the page to the map, or to the map with a compact sheet beside it (and back to the
+full sheet), place their own token on the map and move it (the map and everyone else's tokens
+stay the GM's), and **Download my character** saves
 the character as played right now — the same file the join screen takes back next time. Everything they do shows up live
 on the GM's page and table; everything the GM does to their character shows up live on theirs.
 They never receive GM notes, hidden tokens or unrevealed fog; they may not change what the

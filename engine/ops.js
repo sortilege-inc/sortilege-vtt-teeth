@@ -92,6 +92,7 @@
     setPartyPlayerNotes: (s, [id]) => { const m = (s.party || []).find((x) => x.id === id); return m ? ['setPartyPlayerNotes', [id, m.playerNotes || '']] : null; },
     setMapState: (s, [mapId]) => ['setMapState', [mapId, clone((s.maps || {})[mapId])]],
     setTableMap: (s) => ['setTableMap', [clone((s.table || {}).map)]],
+    placeToken: (s, [mapId]) => ((s.maps || {})[mapId] ? ['setMapState', [mapId, clone(s.maps[mapId])]] : null),
     setTokenPosition: (s, [mapId, tid]) => { const t = (((s.maps || {})[mapId] || {}).tokens || []).find((x) => x.id === tid); return t ? ['setTokenPosition', [mapId, tid, t.x, t.y]] : null; },
   };
   function inverse(s, name, args) {
@@ -208,6 +209,21 @@
     const map = (s.maps || {})[a[0]];
     const t = map && (map.tokens || []).find((tk) => tk.id === a[1]);
     return t && t.hidden ? null : { name: 'setTokenPosition', args: a };
+  });
+
+  // A player places their own token (a party token they own) on the table's map; the GM places
+  // anything. The map must already be in the state (the GM's table put it there when it showed
+  // it), and a member has one token per map — a second placing is refused, not duplicated.
+  register('placeToken', (s, mapId, token) => {
+    const map = (s.maps || {})[mapId];
+    if (!map || !token || !token.id) return;
+    map.tokens = map.tokens || [];
+    if (map.tokens.some((t) => t.id === token.id || (token.owner && t.owner === token.owner))) return;
+    map.tokens.push(token);
+  }, (s, me, a) => {
+    const map = (s.maps || {})[a[0]];
+    const t = a[1];
+    return !!map && !!t && t.kind === 'party' && t.owner === me && !t.hidden && !(map.tokens || []).some((x) => x.owner === me);
   });
 
   function filterMap(map) {

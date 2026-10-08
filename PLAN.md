@@ -231,6 +231,20 @@ disabled. The sheet window opened on Mr Laconicus Strong with GM notes and a Bra
 reached the GM sidebar's ticker ("last: Mr Laconicus Strong · Brawn → 6"). Worker redeployed
 (version c83c9721). Test data reverted.
 
+**Three views and their own token (2026-10-08):** decisions 59–60. Proof on localhost, the local
+Worker, GM on localhost (room 3UKU2, a Bruiser *Test Player* added, the table on the Manor's middle
+floor), player on 127.0.0.1: the claimed sheet opened full-page with *Sheet · Map · Map + sheet* in
+the header and *Map* / *Map + sheet* on its bar; *Map* hid the sheet and framed
+`gm/vtt.html?view=player` with the toolbar "Fit · Ping · Clocks · Place my token" and the hint
+"Place my token puts you on the map"; the button put `tk-pc-…` at cell 13,11 on the player's map
+and on the GM's state through the room, the button then gone and the hint "Drag your own token";
+pointer events on the token's circle moved it to 15,9 on both sides (the harness's drag panned
+instead — it never landed on the 26 px circle; the table's own handlers were exercised directly);
+*Map + sheet* showed the compact sheet (actions-bar, tracks, ratings, rolls) beside the same frame
+(same `src`, the token still on it) with *Expand the sheet · Map only*, and *Expand the sheet* went
+back to the full sheet; at 375×812 the split stacked the map (365 px) over the sheet. No console
+errors. Test member, token, session reverted.
+
 **Players load their own (2026-09-19, owner's ask):** decision 31. Proof over the deployed
 Worker (version 9de18ac9), GM on localhost, player on 127.0.0.1 (room HN6RU): the player's claim
 screen showed *Load my character file…*; a character file read through the loader's path was
@@ -332,6 +346,8 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 56 | A fog *Brush*: a circle of reveal of radius *r* painted as the pointer moves; reveals may be circles or rectangles, drawn as polygons (ellipses on an iso grid) and honoured when a player's token is tested for visibility | Review item. |
 | 57 | On every map switch the next scene's shipped map is fetched ahead; the player view was proven to keep the iso grid | Review items. |
 | 58 | Rolling autosaves: a minute apart while anything changes, the last three per campaign, in IndexedDB; the Campaign panel lists them with *restore* | Review item: the browser was the only live copy between pack downloads. |
+| 59 | The player's page is one of three views once seated: the sheet full-page (where it starts), the map full-page, or the map beside a compact sheet (actions, tracks, ratings, rolls — nothing to read), chosen in the header or on the sheet's bar; the compact sheet has *Expand the sheet* and *Map only*; the map is the table's player view in a frame made once and kept, so the player's pan and zoom survive switching; on a phone the split stacks the map over the sheet; the choice is remembered per tab | Owner's ask (2026-10-08). A frame rather than a second table in the page: the table stays one module, and it already works as a sibling window on the bus. |
+| 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

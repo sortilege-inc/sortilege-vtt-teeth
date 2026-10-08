@@ -46,8 +46,44 @@
   let selectedEffect = null;
   let view = { x: 0, y: 0, w: 2400, h: 1600 };
 
+  // The player's seat. The player's page holds the socket; this window (the table in its own tab,
+  // or the frame the player's page embeds) reads the same session record from storage.
   function myMemberId() {
-    return window.VttSession ? window.VttSession.memberId() : null;
+    if (window.VttSession) return window.VttSession.memberId();
+    try {
+      const info = JSON.parse(localStorage.getItem((window.VttConfig.storagePrefix || 'sortilege-vtt') + ':session') || 'null');
+      return info && info.role === 'player' ? info.memberId || null : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // the token that stands for the player at the table, as the system describes it (owner = the member)
+  function myTokenDef() {
+    const me = myMemberId();
+    if (!me || !Sys.tokenSources) return null;
+    let found = null;
+    Sys.tokenSources(sceneId).forEach((g) => (g.items || []).forEach((t) => { if (!found && t.owner === me) found = t; }));
+    return found;
+  }
+
+  function myToken() {
+    const me = myMemberId();
+    return me && map ? map.tokens.find((t) => t.owner === me) : null;
+  }
+
+  // a player puts their own token down in the middle of what they are looking at, then drags it
+  function placeMyToken() {
+    const def = myTokenDef();
+    if (!def || myToken() || !(State.state.maps || {})[mapId]) return;
+    const c = toCell(view.x + view.w / 2, view.y + view.h / 2);
+    const token = Object.assign({ size: 1, hidden: false }, def, { id: def.id || State.genId('tk'), x: snap(c.x - 0.5), y: snap(c.y - 0.5) });
+    State.commit('placeToken', [mapId, token]);
+    loadMap();
+    selectedId = token.id;
+    renderTokens();
+    buildToolbar();
+    syncHint();
   }
 
   function canDrag(t) {
@@ -287,7 +323,7 @@
       const color = t.color || Sys.tokenColor(t);
       const status = Sys.tokenStatus(t);           // { text, cls } or null — the system's word for the token's state
       const g = s('g', {
-        class: 'token kind-' + (t.kind || 'marker') + (t.id === selectedId ? ' selected' : '') + (t.hidden ? ' hidden-token' : '') + (status && status.cls ? ' ' + status.cls : ''),
+        class: 'token kind-' + (t.kind || 'marker') + (t.id === selectedId ? ' selected' : '') + (t.hidden ? ' hidden-token' : '') + (status && status.cls ? ' ' + status.cls : '') + (PLAYER && canDrag(t) ? ' mine' : ''),
         'data-id': t.id,
         transform: `translate(${cx},${cy})`,
       });
@@ -348,6 +384,7 @@
     }
     loadMap();
     renderAll();
+    if (PLAYER) buildToolbar();            // Place my token comes and goes with the map's state
   }
 
   function switchMap(id, refit) {
@@ -787,7 +824,9 @@
     toolbar.innerHTML = '';
     if (PLAYER) {
       const clocksBtn = el('button', { class: 'btn ghost' + (clocksShown ? ' active' : ''), onclick: () => { clocksShown = !clocksShown; renderClocks(); buildToolbar(); } }, ['Clocks']);
-      toolbar.appendChild(el('div', { class: 'group' }, [el('b', {}, [mapName()]), el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), toolButton('ping', 'Ping'), clocksBtn]));
+      const def = myTokenDef();
+      const placeBtn = def && !myToken() ? el('button', { class: 'btn', onclick: placeMyToken, disabled: (State.state.maps || {})[mapId] ? null : true, title: (State.state.maps || {})[mapId] ? 'Put your token on this map' : 'The GM has not opened this map yet' }, ['Place my token']) : null;
+      toolbar.appendChild(el('div', { class: 'group' }, [el('b', {}, [mapName()]), el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), toolButton('ping', 'Ping'), clocksBtn, placeBtn]));
       return;
     }
     // one entry per map, in scene order: a scene's floors, or the scene itself when it has no map
@@ -925,7 +964,7 @@
     const n = map.tokens.length;
     const note = follow && followNote ? followNote + ' ' : '';
     if (PLAYER) {
-      hint.textContent = myMemberId() ? 'Drag your own token · wheel zooms · drag the map to pan' : 'Wheel zooms · drag the map to pan';
+      hint.textContent = myMemberId() ? (myToken() ? 'Drag your own token · wheel zooms · drag the map to pan' : 'Place my token puts you on the map · wheel zooms · drag the map to pan') : 'Wheel zooms · drag the map to pan';
       return;
     }
     if (selectedEffect) {

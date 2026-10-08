@@ -255,6 +255,7 @@ svg#map.tool-active { cursor: crosshair; }
 body.player .fog { opacity: 1; }
 .token { cursor: pointer; }
 body.player .token { cursor: default; }
+body.player .token.mine { cursor: grab; }
 .token .body { fill: #efe6d3; }
 .token text { font-family: var(--display); fill: var(--ink); pointer-events: none; }
 .token .ini { font-weight: 600; }
@@ -301,6 +302,33 @@ body.play { display: block; }
 .play-card .card.static .btn { margin-top: 0.4rem; }
 .code-input { font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.2em; width: 9rem; }
 .session-error { color: var(--blood); }
+
+/* the player's three views: the sheet full-page (the page as it was), the table full-page, the table beside a compact sheet */
+.play-table-wrap { display: none; background: #2a2622; min-height: 0; }
+.play-table { display: block; width: 100%; height: 100%; border: 0; }
+.play-banner:empty { display: none; }
+.play-banner .banner { margin: 0.6rem 1rem 0; }
+.mode-bar { display: inline-flex; gap: 0.2rem; }
+.mode-bar.in-head .btn { border-color: var(--ink-3); color: var(--paper-3); }
+.mode-bar.in-head .btn.active { background: var(--blood); border-color: var(--blood); color: #fff; }
+body.play.mode-map, body.play.mode-split { display: grid; grid-template-rows: auto auto 1fr; height: 100vh; overflow: hidden; }
+body.play.mode-map .play-head, body.play.mode-split .play-head, body.play.mode-map .play-banner, body.play.mode-split .play-banner { grid-column: 1 / -1; }
+body.play.mode-map .play-main { display: none; }
+body.play.mode-map .play-table-wrap { display: block; grid-row: 3; }
+body.play.mode-split { grid-template-columns: minmax(300px, 380px) 1fr; }
+body.play.mode-split .play-main { grid-row: 3; grid-column: 1; max-width: none; margin: 0; padding: 0.6rem; overflow: auto; border-right: 1px solid var(--ink); }
+body.play.mode-split .play-table-wrap { display: block; grid-row: 3; grid-column: 2; }
+.play-card.compact .play-bar { margin-bottom: 0.4rem; }
+.sheet.compact .sheet-head h2 { font-size: 1.3rem; }
+.sheet.compact .sheet-head.with-portrait { grid-template-columns: 56px 1fr; }
+.sheet.compact .sheet-head.with-portrait .portrait { width: 56px; height: 70px; }
+.sheet-body.compact { display: block; }
+.sheet-body.compact section { margin: 0.4rem 0; }
+@media (max-width: 760px) {
+  body.play.mode-split { grid-template-columns: 1fr; grid-template-rows: auto auto 45vh 1fr; }
+  body.play.mode-split .play-table-wrap { grid-row: 3; grid-column: 1; }
+  body.play.mode-split .play-main { grid-row: 4; grid-column: 1; border-right: 0; border-top: 1px solid var(--ink); }
+}
 
 /* ── clocks and tables ──────────────────────────────────── */
 .clock-row { margin: 0.6rem 0; padding-bottom: 0.4rem; border-bottom: 1px dotted var(--rule); }
@@ -418,6 +446,7 @@ a.card { text-decoration: none; display: block; }
   .sheet-head.with-portrait { grid-template-columns: 64px 1fr; }
   .sheet-head.with-portrait .portrait { width: 64px; height: 80px; }
   .play-bar .btn { font-size: 0.8rem; padding: 0.3rem 0.5rem; }
+  .play-status { flex-wrap: wrap; justify-content: flex-end; row-gap: 0.2rem; }
 }
 
 /* ── the GM sidebar: session meta, presets; the sheet window; print the scene ─ */

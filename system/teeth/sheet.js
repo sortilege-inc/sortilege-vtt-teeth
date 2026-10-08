@@ -503,7 +503,7 @@ window.TeethSheet = (function () {
       el('h2', {}, [m.name]),
       conds.length ? el('div', { class: 'reminders' }, conds.map((c) => el('span', { class: 'chip warn' }, [c]))) : null,
       el('div', { class: 'meta' }, [E.link({ hash: t.id, name: t.name }), el('span', { class: 'muted' }, [t.form === 'ACTOR' ? 'a shared sheet' : (t.type || '')])]),
-      ...sp.header.map((h) => h.ref ? el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [h.name]), el('div', { class: 'prop-v' }, [E.link(h.ref)])])
+      ...(opts.compact ? [] : sp.header).map((h) => h.ref ? el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [h.name]), el('div', { class: 'prop-v' }, [E.link(h.ref)])])
         : typeof h.value === 'string' && h.value.length > 60 ? el('details', { class: 'sheet-text' }, [el('summary', {}, [h.name]), paragraphs(h.value, 'prose small')])
         : el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [h.name + ': ']), String(h.value)])),
       ...Object.keys(m.live.fields || {}).filter((k) => m.live.fields[k]).map((k) => el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [k + ': ']), String(m.live.fields[k])])),
@@ -514,12 +514,15 @@ window.TeethSheet = (function () {
       if (article.parentNode) article.parentNode.replaceChild(fresh, article);
       if (m.preview && m.preview.onChange) m.preview.onChange();
     };
-    const body = el('div', { class: 'sheet-body' }, [
+    // compact (the player's page beside the table): what a roll needs — the actions bar, the
+    // tracks and counters, the ratings, the last rolls — and nothing to read
+    const body = el('div', { class: 'sheet-body' + (opts.compact ? ' compact' : '') }, [
       actionsBar(m, sp, opts, redraw),
       sp.tracks.length ? el('section', { class: 'tracks' }, [el('h4', {}, ['Tracks']), ...sp.tracks.map((tr) => trackRow(m, tr))]) : null,
       sp.counters.length ? el('section', { class: 'counters' }, sp.counters.map((c) => counterRow(m, c))) : null,
       ...sp.ratings.map((r) => ratingRows(m, r, log)),
       el('section', { class: 'rolls' }, [el('h4', {}, ['Rolls']), rollLog]),
+      ...(opts.compact ? [] : [
       sp.picks.length ? el('section', {}, [el('h4', {}, ['Choices']), ...sp.picks.map((pk) => pickRow(m, pk))]) : null,
       ...sp.lists.map((l) => listRows(m, l)),
       ...sp.texts.map((tx) => textRows(m, tx)),
@@ -532,8 +535,9 @@ window.TeethSheet = (function () {
         el('h4', {}, ['Player notes']),
         el('textarea', { rows: 3, oninput: debounce((ev) => State.commit('setPartyPlayerNotes', [m.id, ev.target.value]), 400) }, [m.playerNotes || '']),
       ]),
+      ]),
     ]);
-    const article = el('article', { class: 'sheet' }, [header, body]);
+    const article = el('article', { class: 'sheet' + (opts.compact ? ' compact' : '') }, [header, body]);
     return article;
   }
 
