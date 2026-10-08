@@ -42,8 +42,17 @@
   let map = null;
   let legendOpen = false;        // this window's, never shared
   let tool = 'select';           // select | ping | circle | line | square | reveal
-  let selectedId = null;
+  let selectedId = null;         // the token last clicked (the keys and the menu start from it)
+  let selectedIds = new Set();   // every selected token: a marquee, or the one
   let selectedEffect = null;
+  let spaceHeld = false;         // Space + drag pans while the select tool is up
+  function select(ids, primary) {
+    selectedIds = new Set(ids);
+    selectedId = primary != null ? primary : (ids.length ? ids[ids.length - 1] : null);
+  }
+  function selectedTokens() {
+    return map ? map.tokens.filter((t) => selectedIds.has(t.id)) : [];
+  }
   let view = { x: 0, y: 0, w: 2400, h: 1600 };
 
   // The player's seat. The player's page holds the socket; this window (the table in its own tab,
@@ -323,7 +332,7 @@
       const color = t.color || Sys.tokenColor(t);
       const status = Sys.tokenStatus(t);           // { text, cls } or null — the system's word for the token's state
       const g = s('g', {
-        class: 'token kind-' + (t.kind || 'marker') + (t.id === selectedId ? ' selected' : '') + (t.hidden ? ' hidden-token' : '') + (status && status.cls ? ' ' + status.cls : '') + (PLAYER && canDrag(t) ? ' mine' : ''),
+        class: 'token kind-' + (t.kind || 'marker') + (selectedIds.has(t.id) ? ' selected' : '') + (t.labelMode === 'hover' ? ' label-hover' : '') + (t.hidden ? ' hidden-token' : '') + (status && status.cls ? ' ' + status.cls : '') + (PLAYER && canDrag(t) ? ' mine' : ''),
         'data-id': t.id,
         transform: `translate(${cx},${cy})`,
       });
@@ -447,16 +456,20 @@
     closeMenu();
     const p = svgPoint(e.clientX, e.clientY);
     const t = tokenAt(e.target);
-    if (t && tool === 'select' && canDrag(t)) {
+    const panning = e.button === 1 || spaceHeld || tool === 'pan';
+    if (t && tool === 'select' && canDrag(t) && !panning) {
+      // a token in the selection drags the whole selection; any other becomes the selection
+      if (!selectedIds.has(t.id)) select([t.id]);
       selectedId = t.id;
       selectedEffect = null;
-      drag = { kind: 'token', token: t, offX: p.x - toPx(t.x, t.y).x, offY: p.y - toPx(t.x, t.y).y, moved: false };
+      const group = (PLAYER ? [t] : selectedTokens()).map((tk) => ({ token: tk, x0: tk.x, y0: tk.y }));
+      drag = { kind: 'token', token: t, group, offX: p.x - toPx(t.x, t.y).x, offY: p.y - toPx(t.x, t.y).y, moved: false, at: { x: e.clientX, y: e.clientY } };
       svg.setPointerCapture(e.pointerId);
       renderTokens();
       return;
     }
-    if (t && !PLAYER) {
-      selectedId = t.id;
+    if (t && !PLAYER && !panning) {
+      select([t.id]);
       renderTokens();
     }
     const onEffect = e.target.closest && e.target.closest('.effect');
@@ -488,6 +501,12 @@
       buildToolbar();
       syncHint();
     }
+    if (!PLAYER && tool === 'select' && !panning) {
+      // drag a box on the map: every token whose centre it holds is selected (a bare click selects nothing)
+      drag = { kind: 'marquee', start: p, cur: p, add: e.shiftKey };
+      svg.setPointerCapture(e.pointerId);
+      return;
+    }
     drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y };
     svg.setPointerCapture(e.pointerId);
     svg.classList.add('panning');
@@ -504,15 +523,28 @@
     }
     const p = svgPoint(e.clientX, e.clientY);
     if (drag.kind === 'token') {
+      if (!drag.moved && Math.hypot(e.clientX - drag.at.x, e.clientY - drag.at.y) < 4) return;   // a click, until the pointer has gone somewhere
       const cpos = toCell(p.x - drag.offX, p.y - drag.offY);
-      drag.token.x = cpos.x;
-      drag.token.y = cpos.y;
+      const lead = drag.group.find((g) => g.token === drag.token);
+      const dx = cpos.x - lead.x0;
+      const dy = cpos.y - lead.y0;
       drag.moved = true;
-      const g = layers.tokens.querySelector(`[data-id="${drag.token.id}"]`);
-      if (g) {
-        const ctr = toPx(drag.token.x + drag.token.size / 2, drag.token.y + drag.token.size / 2);
-        g.setAttribute('transform', `translate(${ctr.x},${ctr.y})`);
-      }
+      drag.group.forEach((gm) => {
+        gm.token.x = gm.x0 + dx;
+        gm.token.y = gm.y0 + dy;
+        const g = layers.tokens.querySelector(`[data-id="${gm.token.id}"]`);
+        if (g) {
+          const ctr = toPx(gm.token.x + gm.token.size / 2, gm.token.y + gm.token.size / 2);
+          g.setAttribute('transform', `translate(${ctr.x},${ctr.y})`);
+        }
+      });
+      return;
+    }
+    if (drag.kind === 'marquee') {
+      drag.cur = p;
+      layers.preview.innerHTML = '';
+      const r = normRect(drag.start, drag.cur);
+      layers.preview.appendChild(s('rect', { class: 'marquee', x: r.x, y: r.y, width: r.w, height: r.h }));
       return;
     }
     if (drag.kind === 'tool') {
@@ -543,13 +575,32 @@
     svg.classList.remove('panning');
     if (drag.kind === 'token') {
       if (drag.moved) {
-        drag.token.x = snap(drag.token.x);
-        drag.token.y = snap(drag.token.y);
-        State.commit('setTokenPosition', [mapId, drag.token.id, drag.token.x, drag.token.y]);   // the op a player may send
+        drag.group.forEach((gm) => {
+          gm.token.x = snap(gm.token.x);
+          gm.token.y = snap(gm.token.y);
+        });
+        if (drag.group.length === 1) State.commit('setTokenPosition', [mapId, drag.token.id, drag.token.x, drag.token.y]);   // the op a player may send
+        else persist();                                                                                                      // the group as one change, one undo
+      } else if (!PLAYER && drag.token.kind !== 'party') {
+        openTokenMenu(drag.token, drag.at.x, drag.at.y);     // a click on an NPC: its options
       } else {
         Sys.selectToken(drag.token);
       }
       renderTokens();
+    } else if (drag.kind === 'marquee') {
+      layers.preview.innerHTML = '';
+      const r = normRect(drag.start, drag.cur);
+      if (r.w > 4 || r.h > 4) {
+        const inside = map.tokens.filter((t) => {
+          const c = toPx(t.x + t.size / 2, t.y + t.size / 2);
+          return c.x >= r.x && c.x <= r.x + r.w && c.y >= r.y && c.y <= r.y + r.h;
+        }).map((t) => t.id);
+        select(drag.add ? Array.from(selectedIds).concat(inside) : inside);
+      } else {
+        select([]);
+      }
+      renderTokens();
+      syncHint();
     } else if (drag.kind === 'tool') {
       layers.preview.innerHTML = '';
       const moved = Math.hypot(drag.cur.x - drag.start.x, drag.cur.y - drag.start.y) > 0.15;
@@ -611,30 +662,38 @@
       tool = 'select';
       closeMenu();
       selectedEffect = null;
+      select([]);
+      renderTokens();
       svg.classList.remove('tool-active');
       renderEffects();
       buildToolbar();
     }
-    if (selectedId && !(e.target instanceof HTMLInputElement)) {
-      const t = map.tokens.find((x) => x.id === selectedId);
+    if (e.key === ' ' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      spaceHeld = true;
+      svg.classList.add('panning');
+      e.preventDefault();
+    }
+    const sel = selectedTokens();      // the keys act on every selected token
+    if (sel.length && !(e.target instanceof HTMLInputElement)) {
       const sizes = { 1: 0.5, 2: 1, 3: 2, 4: 3 };
-      if (t && sizes[e.key]) {
-        t.size = sizes[e.key];
+      if (sizes[e.key]) {
+        sel.forEach((t) => (t.size = sizes[e.key]));
         persist();
         renderTokens();
         return;
       }
-      if (t && e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey) {
-        t.hidden = !t.hidden;
+      if (e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey) {
+        const hide = sel.some((t) => !t.hidden);
+        sel.forEach((t) => (t.hidden = hide));
         persist();
         renderTokens();
         return;
       }
-      if (t && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
         e.preventDefault();
-        const copy = Object.assign({}, JSON.parse(JSON.stringify(t)), { id: State.genId('tk'), x: t.x + 1, y: t.y });
-        map.tokens.push(copy);
-        selectedId = copy.id;
+        const copies = sel.map((t) => Object.assign({}, JSON.parse(JSON.stringify(t)), { id: State.genId('tk'), x: t.x + 1, y: t.y }));
+        copies.forEach((c) => map.tokens.push(c));
+        select(copies.map((c) => c.id));
         persist();
         renderTokens();
         return;
@@ -643,9 +702,15 @@
     if ((e.key === 'Delete' || e.key === 'Backspace') && !(e.target instanceof HTMLInputElement)) {
       if (selectedEffect) {
         removeEffect(selectedEffect);
-      } else if (selectedId) {
-        removeToken(selectedId);
+      } else if (sel.length) {
+        removeTokens(sel.map((t) => t.id));
       }
+    }
+  });
+  document.addEventListener('keyup', (e) => {
+    if (e.key === ' ') {
+      spaceHeld = false;
+      if (!drag) svg.classList.remove('panning');
     }
   });
 
@@ -695,9 +760,18 @@
   }
   let preloaded = null;
 
+  function removeTokens(ids) {
+    const gone = new Set(ids);
+    map.tokens = map.tokens.filter((x) => !gone.has(x.id));
+    select(Array.from(selectedIds).filter((x) => !gone.has(x)));
+    persist();
+    renderTokens();
+    syncHint();
+  }
   function removeToken(id) {
     map.tokens = map.tokens.filter((t) => t.id !== id);
     if (selectedId === id) selectedId = null;
+    selectedIds.delete(id);
     persist();
     renderTokens();
   }
@@ -731,14 +805,21 @@
       return;
     }
     if (!t) return;
+    openTokenMenu(t, e.clientX, e.clientY);
+  });
+
+  // the token's options, under the pointer; when the token is one of a selection, the options take the selection
+  function openTokenMenu(t, clientX, clientY) {
+    closeMenu();
+    if (!selectedIds.has(t.id)) select([t.id]);
     selectedId = t.id;
     renderTokens();
     menu = buildMenu(t);
     const rect = stage.getBoundingClientRect();
-    menu.style.left = Math.min(e.clientX - rect.left, rect.width - 260) + 'px';
-    menu.style.top = Math.min(e.clientY - rect.top, rect.height - 260) + 'px';
+    menu.style.left = Math.max(0, Math.min(clientX - rect.left, rect.width - 300)) + 'px';
+    menu.style.top = Math.max(0, Math.min(clientY - rect.top, rect.height - 340)) + 'px';
     stage.appendChild(menu);
-  });
+  }
 
   document.addEventListener('pointerdown', (e) => {
     if (menu && !menu.contains(e.target)) closeMenu();
@@ -761,13 +842,33 @@
   }
 
   function buildMenu(t) {
-    const hide = el('button', { class: 'btn ghost', onclick: () => { t.hidden = !t.hidden; persist(); renderTokens(); closeMenu(); } }, [t.hidden ? 'Reveal to players' : 'Hide from players']);
-    const sizeSel = el('select', { class: 'vtt-num' });
-    [0.5, 1, 2, 3].forEach((n) => sizeSel.appendChild(el('option', { value: String(n), selected: n === t.size || null }, [n === 0.5 ? 'Small (½)' : n === 1 ? 'Normal (1)' : n === 2 ? 'Large (2)' : 'Huge (3)'])));
-    sizeSel.addEventListener('change', () => { t.size = parseFloat(sizeSel.value); persist(); renderTokens(); });
-    const rename = el('button', { class: 'btn ghost', onclick: () => { const n = prompt('Label', t.label); if (n) { t.label = n; persist(); renderTokens(); } closeMenu(); } }, ['Rename']);
-    const remove = el('button', { class: 'btn danger', onclick: () => { removeToken(t.id); closeMenu(); } }, ['Remove token']);
-    const body = el('div', { class: 'vtt-menu' }, [el('h4', {}, [t.label]), el('div', { class: 'row' }, [hide, sizeSel]), el('div', { class: 'row' }, [rename, remove])]);
+    // the tokens the options act on: the selection when the token is in it (party tokens keep their own ring and face)
+    const targets = selectedIds.has(t.id) && selectedIds.size > 1 ? selectedTokens() : [t];
+    const npcs = targets.filter((x) => x.kind !== 'party');
+    const refreshMenu = () => { const fresh = buildMenu(t); fresh.style.left = menu.style.left; fresh.style.top = menu.style.top; menu.replaceWith(fresh); menu = fresh; };
+    const apply = (fn) => { (npcs.length ? npcs : targets).forEach(fn); persist(); renderTokens(); refreshMenu(); };
+    const title = targets.length > 1 ? `${targets.length} tokens` : t.label;
+    const palette = Sys.tokenPalette ? Sys.tokenPalette() : [];
+    const current = t.color || Sys.tokenColor(t);
+    const swatches = palette.map((c) => el('button', { class: 'swatch' + (c.color.toLowerCase() === current.toLowerCase() ? ' on' : ''), title: c.name, style: 'background:' + c.color, onclick: () => apply((x) => (x.color = c.color)) }));
+    const custom = el('input', { type: 'color', class: 'swatch custom', title: 'Any colour', value: /^#[0-9a-f]{6}$/i.test(current) ? current : '#8f1d22' });
+    custom.addEventListener('input', () => apply((x) => (x.color = custom.value)));
+    const ringRow = el('div', { class: 'row' }, [el('span', { class: 'muted' }, ['Ring']), ...swatches, custom]);
+    const icons = Sys.tokenIcons ? Sys.tokenIcons() : [];
+    const iconGrid = icons.length ? el('div', { class: 'icon-grid' }, icons.map((ic) => el('button', { class: 'icon' + (t.image === ic.image ? ' on' : ''), title: ic.label, onclick: () => apply((x) => (x.image = ic.image)) }, [el('img', { src: ic.image, alt: ic.label })]))) : null;
+    const iconRow = iconGrid ? el('div', { class: 'row' }, [el('span', { class: 'muted' }, ['Face']), iconGrid]) : null;
+    const labelRow = el('div', { class: 'row' }, [
+      el('span', { class: 'muted' }, ['Name']),
+      el('button', { class: 'btn ghost tiny' + (t.labelMode !== 'hover' ? ' active' : ''), onclick: () => apply((x) => (x.labelMode = 'below')) }, ['Below']),
+      el('button', { class: 'btn ghost tiny' + (t.labelMode === 'hover' ? ' active' : ''), onclick: () => apply((x) => (x.labelMode = 'hover')) }, ['On hover']),
+    ]);
+    const sizeIn = el('input', { type: 'number', class: 'vtt-num', min: '0.5', max: '12', step: '0.5', value: String(t.size || 1), title: 'Squares on a side' });
+    sizeIn.addEventListener('change', () => { const n = parseFloat(sizeIn.value); if (n >= 0.5) apply((x) => (x.size = n)); });
+    const sizeRow = el('div', { class: 'row' }, [el('span', { class: 'muted' }, ['Size']), sizeIn, el('span', { class: 'muted' }, ['squares on a side'])]);
+    const hide = el('button', { class: 'btn ghost', onclick: () => { const h = targets.some((x) => !x.hidden); targets.forEach((x) => (x.hidden = h)); persist(); renderTokens(); closeMenu(); } }, [targets.some((x) => !x.hidden) ? 'Hide from players' : 'Reveal to players']);
+    const rename = targets.length === 1 ? el('button', { class: 'btn ghost', onclick: () => { const n = prompt('Label', t.label); if (n) { t.label = n; persist(); renderTokens(); } closeMenu(); } }, ['Rename']) : null;
+    const remove = el('button', { class: 'btn danger', onclick: () => { removeTokens(targets.map((x) => x.id)); closeMenu(); } }, [targets.length > 1 ? `Remove ${targets.length} tokens` : 'Remove token']);
+    const body = el('div', { class: 'vtt-menu token-menu' }, [el('h4', {}, [title]), ringRow, iconRow, labelRow, sizeRow, el('div', { class: 'row' }, [hide, rename, remove])]);
     const extra = Sys.tokenMenu(t, () => { persist(); renderTokens(); closeMenu(); });
     if (extra) body.appendChild(extra);
     return body;
@@ -925,6 +1026,7 @@
     const removeFx = selectedFx ? el('button', { class: 'btn danger', title: 'Remove the selected shape (Delete does the same)', onclick: () => removeEffect(selectedFx.id) }, ['Remove ' + selectedFx.kind]) : null;
     const clearFx = map.effects.length ? el('button', { class: 'btn ghost', title: 'Remove every circle, line and square on this map', onclick: () => { if (confirm(`Remove all ${map.effects.length} shapes on this map?`)) { map.effects = []; selectedEffect = null; persist(); renderEffects(); buildToolbar(); syncHint(); } } }, ['Clear']) : null;
     toolbar.appendChild(el('div', { class: 'group' }, [
+      toolButton('pan', 'Pan', 'Drag the map (or hold Space, or drag with the middle button)'),
       toolButton('ping', 'Ping', 'Click the map to ping it in every window'),
       toolButton('circle', 'Circle', 'Drag from centre'),
       toolButton('line', 'Line', 'Drag start to end'),
@@ -973,7 +1075,9 @@
       return;
     }
     const shapes = map.effects.length ? ` · ${map.effects.length} shape${map.effects.length === 1 ? '' : 's'}: click one to select it` : '';
-    hint.textContent = note + (n ? `${n} token${n === 1 ? '' : 's'} · drag to move · right-click for hide, size, rename · selected: 1–4 size, H hide, Ctrl+D duplicate, Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
+    const k = selectedIds.size;
+    const selNote = k > 1 ? `${k} selected · drag one to move them all · ` : '';
+    hint.textContent = note + selNote + (n ? `${n} token${n === 1 ? '' : 's'} · click an NPC for its options (ring, face, name, size) · drag to move · drag a box to select · Space or middle button pans · selected: 1–4 size, H hide, Ctrl+D duplicate, Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
   }
 
   // ── bus ────────────────────────────────────────────────────────────

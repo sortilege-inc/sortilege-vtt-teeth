@@ -311,6 +311,19 @@ window.VttSystem = (function () {
   function tokenColor(t) {
     return COLORS[t.kind] || COLORS.marker;
   }
+  // the rings a token may wear (the table's options menu): the four kinds' colours and six more inks
+  const PALETTE = [
+    { name: 'Party green', color: '#4f6b3a' }, { name: 'Blood', color: '#8f1d22' }, { name: 'Ink', color: '#1a1613' }, { name: 'Marker grey', color: '#6b6154' },
+    { name: 'Ochre', color: '#b9842a' }, { name: 'Night blue', color: '#2f4f6b' }, { name: 'Violet', color: '#5b3a6b' }, { name: 'Verdigris', color: '#2f6b5e' }, { name: 'Rust', color: '#a1481e' }, { name: 'Bone', color: '#efe6d3' },
+  ];
+  function tokenPalette() {
+    return PALETTE.map((c) => Object.assign({}, c));
+  }
+  // a dozen generic faces for an NPC with no art (assets/tokens/npc/, the house style)
+  const ICONS = ['person', 'hood', 'helm', 'crown', 'mitre', 'hat', 'skull', 'wolf', 'crow', 'boar', 'hound', 'purse'];
+  function tokenIcons() {
+    return ICONS.map((id) => ({ id, label: id[0].toUpperCase() + id.slice(1), image: 'assets/tokens/npc/' + id + '.svg' }));
+  }
 
   // A party token's word: its tracks, as the sheet keeps them ("Stress 3/8 · Suspicion 2/6").
   function tokenStatus(t) {
@@ -350,5 +363,5 @@ window.VttSystem = (function () {
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, rollLine, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenPalette, tokenIcons, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, rollLine, memberSubtitle, MODULE_MAPS };
 })();

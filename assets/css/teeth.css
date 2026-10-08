@@ -264,6 +264,19 @@ body.player .token.mine { cursor: grab; }
 .token.selected .ring-outline { stroke: #fbf6ea !important; stroke-dasharray: 6 4; }
 .token.hidden-token .body { stroke-dasharray: 4 4; }
 .token.hidden-token { opacity: 0.45; }
+.token.label-hover .label { opacity: 0; transition: opacity 0.15s; }
+.token.label-hover:hover .label { opacity: 1; }
+.marquee { fill: rgba(251, 246, 234, 0.12); stroke: #fbf6ea; stroke-width: 1.5; stroke-dasharray: 6 4; pointer-events: none; }
+.vtt-stage svg.panning, .vtt-stage svg.panning .token { cursor: grabbing; }
+.token-menu { min-width: 300px; max-width: 360px; }
+.token-menu .row > .muted { min-width: 2.6rem; }
+.swatch { width: 20px; height: 20px; border: 1px solid var(--ink); border-radius: 50%; padding: 0; cursor: pointer; }
+.swatch.on { outline: 2px solid var(--blood-2); outline-offset: 1px; }
+.swatch.custom { width: 24px; height: 22px; border-radius: 4px; background: none; }
+.icon-grid { display: grid; grid-template-columns: repeat(6, 32px); gap: 4px; }
+.icon-grid .icon { width: 32px; height: 32px; padding: 1px; border: 1px solid transparent; background: none; cursor: pointer; border-radius: 50%; }
+.icon-grid .icon img { width: 100%; height: 100%; display: block; }
+.icon-grid .icon.on { border-color: var(--blood-2); box-shadow: 0 0 0 1px var(--blood-2); }
 .effect { fill: rgba(143, 29, 34, 0.18); stroke: var(--blood-2); stroke-width: 2; cursor: pointer; }
 .effect.line { stroke: rgba(181, 52, 58, 0.55); stroke-linecap: round; }
 .effect.selected { stroke: #fbf6ea; stroke-dasharray: 6 4; filter: drop-shadow(0 0 3px #1a1613); }

@@ -68,8 +68,10 @@ takes back this window's own changes, on the GM page, the table and the player's
 Scene panel's **On the table** puts the scene's figures and the party on its map from here.
 
 **Open table** puts the current scene's map in its own window (`gm/vtt.html`): grid calibration,
-tokens for the party and the cast (add them from the toolbar; drag to move; right-click to hide,
-resize, rename), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
+tokens for the party and the cast (add them from the toolbar; drag to move; click an NPC for its
+options — ring colour, one of a dozen generic faces, name below or on hover, size in squares — or
+hide, rename, remove; drag a box to select several and move them together; Space, the middle
+button or the Pan tool pans), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
 right-click to label it; Clear takes them all), fog with reveal rectangles; the grid can be
 square or **iso** (a diamond lattice with an adjustable ratio, on by default for the isometric
 maps), the campaign's clocks sit over the map, a **Ruler** measures in cells, a fog **Brush** paints

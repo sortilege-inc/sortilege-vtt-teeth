@@ -245,6 +245,18 @@ instead — it never landed on the 26 px circle; the table's own handlers were e
 back to the full sheet; at 375×812 the split stacked the map (365 px) over the sheet. No console
 errors. Test member, token, session reverted.
 
+**NPC options and box selection (2026-10-08):** decision 63. Proof on localhost, GM table on the
+Manor's middle floor with Mr Bagbury (cast) and A Hogman (foe) added: a left click on Mr Bagbury
+opened the menu titled with his name — Ring (10 swatches + a colour picker), Face (12 icons), Name
+(Below · On hover), Size (squares on a side), Hide · Rename · Remove; *Ochre* set his ring stroke
+to `#b9842a`, *Skull* his image to `assets/tokens/npc/skull.svg`, *On hover* put `label-hover` on
+the token (label opacity 0 until hovered), size 2 made him two squares — all four in the state's
+map (undo stack 4). A box dragged over both tokens selected 2 ("2 selected · drag one to move them
+all" in the hint); dragging the Hogman moved both from 9,1 / 10,1 to 13,5 / 14,5 as one undo (5);
+Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the view, a left drag
+on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
+Test tokens reverted.
+
 **Map-only fixed, fit on switch (2026-10-08):** decisions 61–62. Proof on localhost, GM on
 localhost (room ETAL9, a Bruiser *Test Player*), player on 127.0.0.1 at 1024×768: the join link
 moved the tab out of room 3UKU2 into ETAL9 and the claim seated it; *Map* gave the frame the whole
@@ -357,6 +369,7 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 59 | The player's page is one of three views once seated: the sheet full-page (where it starts), the map full-page, or the map beside a compact sheet (actions, tracks, ratings, rolls — nothing to read), chosen in the header or on the sheet's bar; the compact sheet has *Expand the sheet* and *Map only*; the map is the table's player view in a frame made once and kept, so the player's pan and zoom survive switching; on a phone the split stacks the map over the sheet; the choice is remembered per tab | Owner's ask (2026-10-08). A frame rather than a second table in the page: the table stays one module, and it already works as a sibling window on the bus. |
 | 61 | The map fits itself whenever the player's view changes (map ↔ split), on a timer rather than an animation frame so it fires in a background tab too; map-only takes a single column — `body` carries the GM page's sidebar + main columns, and the frame had landed in the 190 px sidebar column | Owner's report with a screenshot (2026-10-08): the map-only view was a 190 px strip beside blank paper. |
 | 62 | A join link (`play.html?s=CODE`) joins its room even when the tab is still seated in another room from last time | Found while proving 61: the tab stayed in the previous evening's room and showed "Your character isn't in the party any more". |
+| 63 | NPC tokens have an options menu on a left click (a drag still moves): ring colour from the system's palette or any colour, a face from a dozen generic icons (`assets/tokens/npc/`, the house style), the name below or on hover, size as squares on a side; the right-click menu is the same menu. The table keeps a selection set: drag a box on the map to select the tokens inside (Shift adds), drag one to move them all as one undo step, the keys and Delete take them all; Space, the middle button or a *Pan* tool pans. The system supplies `tokenPalette()` and `tokenIcons()`; a party token's click still opens its sheet | Owner's ask (2026-10-08): "left-click on the top and get an options menu … click and drag should still move them. Clicking and dragging a box around should select." Plain drag on the map became the marquee, so panning moved to Space / middle button / Pan. |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
