@@ -45,7 +45,8 @@ items to know about. The draft stays in that browser; the result is **Download a
 `.teeth-character.json` file — or a printed sheet. On the GM's table, **Campaign › Player
 characters › Load character file(s)…** (or **Party › Add from file…**) puts it in the campaign;
 from then on it is part of the party, so **Save pack** carries it and **Restore pack** brings it
-back, and each one can be downloaded again from there.
+back, and each one can be downloaded again from there. The browser also keeps the last three
+**autosaves** of each campaign, a minute apart, restorable from the same panel.
 
 **The GM's table** (`gm/`) opens on a *Blood Cotillion* campaign: **Module** (a picker for
 the module in play — *Night of the Hogmen*, *Blood Cotillion*, *Stranger and Stranger*; the default
@@ -59,7 +60,10 @@ Inspector), **Clocks** (the books' clocks or your own, each GM-only or shown to 
 **Cast** (drag to arrange), **Rules & Books** (search everything with `/`, or browse a book), **Lore** and
 **Campaign** (which modules and books are in play; save / restore the campaign as a pack). Any
 table the books roll on has a **Roll on this table** button in the Inspector.
-Everything you tick or type is saved in this browser as you go; **Undo** (Ctrl+Z, with Redo)
+The sidebar shows the time at the table, the last roll and the room's idleness while a session
+runs, and **Prep** / **Running** presets set the three slots in one click; right-click a party card
+for its sheet in its own window; **Notes as text** (Campaign) and **Print** (Scene) take the GM's
+notes out. Everything you tick or type is saved in this browser as you go; **Undo** (Ctrl+Z, with Redo)
 takes back this window's own changes, on the GM page, the table and the player's page alike. The
 Scene panel's **On the table** puts the scene's figures and the party on its map from here.
 
@@ -68,7 +72,9 @@ tokens for the party and the cast (add them from the toolbar; drag to move; righ
 resize, rename), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
 right-click to label it; Clear takes them all), fog with reveal rectangles; the grid can be
 square or **iso** (a diamond lattice with an adjustable ratio, on by default for the isometric
-maps), and the add-token menu opens with the figures of the scene in play. A scene may
+maps), the campaign's clocks sit over the map, a **Ruler** measures in cells, a fog **Brush** paints
+reveals, and with a token selected 1–4 size it, H hides it and Ctrl+D duplicates it; the add-token
+menu opens with the figures of the scene in play. A scene may
 ship several maps — Buckleridge Manor is four floors, one map each, the middle floor first — and
 the toolbar's map list switches between them; tokens and fog belong to the floor. It follows the
 GM's scene unless pinned. **Legend** pulls up the map's key, verbatim from the book (the

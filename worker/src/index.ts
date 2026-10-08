@@ -108,6 +108,11 @@ export class SessionRoom extends DurableObject<Env> {
     return !!this.get('gmToken');
   }
 
+  async info(): Promise<{ exists: boolean; createdAt: number | null; lastActive: number | null; idleMs: number }> {
+    const exists = !!this.get('gmToken');
+    return { exists, createdAt: this.get('createdAt'), lastActive: this.get('lastActive'), idleMs: IDLE_MS };
+  }
+
   async alarm(): Promise<void> {
     const last = this.get('lastActive') || 0;
     if (Date.now() - last < IDLE_MS) {
@@ -292,7 +297,7 @@ export default {
       if (!/^[A-Z0-9]{4,8}$/.test(code)) return json(env, request, 400, { success: false, message: 'bad room code' });
       const stub = env.SESSION_ROOM.getByName(code);
       if (parts[2] === 'ws') return stub.fetch(request);
-      if (parts.length === 2 && request.method === 'GET') return json(env, request, 200, { exists: await stub.exists() });
+      if (parts.length === 2 && request.method === 'GET') return json(env, request, 200, await stub.info());
     }
     return json(env, request, 404, { success: false, message: 'not found' });
   },

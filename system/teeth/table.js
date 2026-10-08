@@ -80,9 +80,40 @@ window.VttSystem = (function () {
       'The Tangled Copse': ['Pigs gnawing the tree', 'Pigs in the undergrowth'],
       'Brace For The Hogstorm!': ['Hogman', 'Pigs', 'The farmer', 'The traveller', 'The soldiers'],
     },
+    cotillion: {
+      'The Manor Itself': ['The Staff', 'Gorland “Red” Dummond'],
+      'The Grounds and Gardens': ['The hermit', 'Ghosts of the maze', 'Toxic toads'],
+      'Let the Festivities Commence': ['The Chaperone', 'Lord Kirklan Kelmorton', 'Wilfrum Kelmorton', 'Captain Branforth Kelmorton', 'Trothamere Kelmorton', 'Darren Kelmorton', 'The Other Guests'],
+      'The Pleasures of the Ball': ['The Other Guests', 'The Staff'],
+      'The Secrets Revealed': ['Wilfrum Kelmorton', 'Captain Branforth Kelmorton', 'Trothamere Kelmorton', 'Darren Kelmorton', 'The Staff', 'Gorland “Red” Dummond'],
+      'How to Portion out the Secrets': ['Wilfrum Kelmorton', 'Captain Branforth Kelmorton', 'Trothamere Kelmorton', 'Darren Kelmorton'],
+      'The Arrival of the Bailiff': ['The Bailiff', 'The Other Guests'],
+      'The Final Mirror': ['A mirror-self'],
+      'The Potential for Truly Hideous Chaos': ['The Regiment', 'Gorland “Red” Dummond', 'Wilfrum Kelmorton', 'Captain Branforth Kelmorton', 'Trothamere Kelmorton', 'Darren Kelmorton', 'The Staff', 'The Other Guests'],
+      'The Blood Shrine': ['Lord Kirklan Kelmorton', 'Lady Kelmorton', 'A dead servant'],
+      'Lady Kelmorton': ['Lady Kelmorton'],
+      'Lord Kelmorton': ['Lord Kirklan Kelmorton', 'Lady Kelmorton'],
+    },
+    stranger: {
+      'The First Encounter': ['The Abomination'],
+      'The First Preparation Phase': ['Villagers'],
+      'The Abomination is in the Village!': ['The Abomination', 'Villagers', 'The village pigs'],
+      'The First Aftermath Phase': ['Villagers'],
+      'A Stranger Comes to the Village': ['The Stranger', 'Villagers'],
+      'The Stranger': ['The Stranger'],
+      'The Stranger’s Request': ['The Stranger', 'The village elders'],
+      'An Extra Incentive': ['The Stranger', 'Villagers'],
+      'Information Gathering': ['The Stranger', 'The Hermit of Hogfoot', 'Mrs Urguin', 'Sable, the bog witch'],
+      'Vengeance!': ['The Abomination'],
+      'Betrayal!': ['The Stranger', 'The Abomination'],
+      'Rescue!': ['Ivo Mehmed', 'Agents of the Crown', 'Mr Bagbury', 'Bagbury’s armed men'],
+      'Death! & Other Friends': ['The Stranger', 'The Stranger’s friends'],
+    },
   };
-  const BEASTS = /\b(horse|horses|pigs?|worm|ox|donkey)\b/i;
-  function figureToken(label) {
+  const BEASTS = /\b(horse|horses|pigs?|worm|ox|donkey|toads?|abomination|ghosts?|mirror-self)\b/i;
+  function figureToken(label, moduleId) {
+    const member = moduleId ? cast(moduleId).find((e) => e.name === label) : null;   // a cast member: link it, wear its portrait
+    if (member) return { label, kind: 'cast', ref: member.id, image: portrait(member.id) || NPC_TOKEN };
     if (/hogman/i.test(label)) return { label, kind: 'foe', image: 'assets/tokens/hogman.webp' };
     if (BEASTS.test(label)) return { label, kind: 'foe' };
     return { label, kind: 'cast', image: NPC_TOKEN };
@@ -91,7 +122,7 @@ window.VttSystem = (function () {
     for (const moduleId of modules()) {
       const sc = D.scene(moduleId, sceneId);
       const list = sc && SCENE_FIGURES[moduleId] && SCENE_FIGURES[moduleId][sc.name];
-      if (list) return list.map(figureToken);
+      if (list) return list.map((l) => figureToken(l, moduleId));
     }
     return [];
   }

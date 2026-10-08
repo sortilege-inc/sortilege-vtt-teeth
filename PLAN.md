@@ -215,6 +215,22 @@ pushed +1E: Guts 4 on the GM's page, the line in the GM's log and the token stat
 that does not exist showed the banner "Lost the table — reconnecting…" with Retry now. Test
 members, tokens, session and campaign reverted.
 
+**The rest of the review (2026-10-07):** decisions 48–58. Proof on localhost through the real
+controls, GM page: *Let the Festivities Commence* listed the Chaperone, Lord Kirklan Kelmorton,
+the four sons and the Other Guests, each linked to its cast entry with the generic portrait, and
+*Rescue!* listed Ivo Mehmed, the Crown's agents, Mr Bagbury and his men; *Running* set the slots
+to Scene · Party · Dice log and *Prep* back; a started session showed "0m at the table", "nothing
+rolled yet", and the Worker answered the room's createdAt / lastActive; *Notes as text* produced
+`night-of-the-hogmen-notes.txt` with the scene's note; a forced autosave listed two autosaves a
+party member apart; *Print* sits in the scene nav. Table on the iso farmhouse: the clocks overlay
+read 3 / 8 and a click made it 5 / 8 on the GM page too; the ruler read "11.2 cells" and left
+nothing; the brush painted seven circles, seven fog holes, persisted; a selected Hogman took size
+2 from the 3 key, hid on H, and Ctrl+D made a second at the next cell; the next map (the bog) was
+preloaded; the player view kept the 120×69 diamond lattice and showed the clock with its boxes
+disabled. The sheet window opened on Mr Laconicus Strong with GM notes and a Brawn roll from it
+reached the GM sidebar's ticker ("last: Mr Laconicus Strong · Brawn → 6"). Worker redeployed
+(version c83c9721). Test data reverted.
+
 **Players load their own (2026-09-19, owner's ask):** decision 31. Proof over the deployed
 Worker (version 9de18ac9), GM on localhost, player on 127.0.0.1 (room HN6RU): the player's claim
 screen showed *Load my character file…*; a character file read through the loader's path was
@@ -305,6 +321,17 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 45 | **Reminders.** `TeethSheet.conditions(m)` — the behaviour pick at the limit (Hysteria / Aberrant / Erratic Behaviour), the worst injury filled with its penalty, the resource used up — as chips on the sheet head and in the party token's status line (dashed ring) | Owner's review ask. |
 | 46 | **The player's page** shows *At the table*, the last ten rolls and named actions of everyone (the log as the room already shares it), a reconnect banner with *Retry now* (`Session.reconnect()` drops the backoff) whenever the session is active but not online, and on a phone (≤600 px) puts the Actions bar, the attributes and the roll feed first with larger targets | Owner's review asks. |
 | 47 | **On the table** in the Scene panel: the scene's map name, a button per figure (and *All figures*), *Party to the table* with a count of who is there; `VttSystem.placeTokens` builds the map state the way the table does and stages tokens a cell apart | Owner's review ask: the figures were three clicks away in another window. |
+| 48 | Blood Cotillion's and Stranger and Stranger's scenes have their figures (`SCENE_FIGURES`), named as the scene text names them; a figure whose name is a cast member's links to it and wears its portrait | The rest of decision 39. |
+| 49 | The GM sidebar's session block shows the time at the table, the last roll or action, and the room's idleness (the Worker's GET now returns `createdAt` / `lastActive` / `idleMs`), in red from two days before expiry | Review item: the GM page showed no life from the players. |
+| 50 | Panel presets, one click each: *Prep* (Module · Scene · Inspector) and *Running* (Scene · Party · Dice log); on a narrow screen the preset's first panel shows | Review item. |
+| 51 | Right-click on a party card opens the sheet in its own window (`gm/sheet.html?member=…`, `engine/sheet-window.js`): the GM's view, on the same state, for a second screen | Review item. |
+| 52 | *Notes as text* in the Campaign panel downloads every scene's done-mark and notes per module and the party's GM notes as one text file; *Print* in the Scene panel prints the scene alone (a print stylesheet hides the rest) | Review item. |
+| 53 | The table shows the campaign's clocks over the map (*Clocks* toggles; the GM ticks them there, the player view shows the visible ones read-only) | Review item. |
+| 54 | Token keys: with a token selected, 1–4 set its size, H hides or reveals it, Ctrl+D duplicates it a cell over; the hint says so | Review item. |
+| 55 | A *Ruler* tool: drag to read a distance in cells (cell-space, so true on an iso grid); nothing is left behind | Review item. |
+| 56 | A fog *Brush*: a circle of reveal of radius *r* painted as the pointer moves; reveals may be circles or rectangles, drawn as polygons (ellipses on an iso grid) and honoured when a player's token is tested for visibility | Review item. |
+| 57 | On every map switch the next scene's shipped map is fetched ahead; the player view was proven to keep the iso grid | Review items. |
+| 58 | Rolling autosaves: a minute apart while anything changes, the last three per campaign, in IndexedDB; the Campaign panel lists them with *restore* | Review item: the browser was the only live copy between pack downloads. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

@@ -195,8 +195,10 @@
     if (!map.fog.enabled) return true;
     const cx = t.x + t.size / 2;
     const cy = t.y + t.size / 2;
-    return map.fog.revealed.some((r) => cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h);
+    return map.fog.revealed.some((r) => (r.r != null ? Math.hypot(cx - r.x, cy - r.y) <= r.r : cx >= r.x && cx <= r.x + r.w && cy >= r.y && cy <= r.y + r.h));
   }
+  // a cell-space circle as a pixel polygon (an ellipse on an iso grid)
+  const cellCircle = (x, y, r) => Array.from({ length: 28 }, (_, i) => { const a = (i / 28) * Math.PI * 2; const p = toPx(x + Math.cos(a) * r, y + Math.sin(a) * r); return `${p.x},${p.y}`; }).join(' ');
 
   // ── SVG ────────────────────────────────────────────────────────────
   function s(tag, attrs, children) {
@@ -258,8 +260,9 @@
     layers.fog.style.display = map.fog.enabled ? '' : 'none';
     layers.fogHoles.innerHTML = '';
     map.fog.revealed.forEach((r) => {
-      layers.fogHoles.appendChild(s('polygon', { points: cellPoly(r.x, r.y, r.w, r.h), fill: 'black' }));
+      layers.fogHoles.appendChild(s('polygon', { points: r.r != null ? cellCircle(r.x, r.y, r.r) : cellPoly(r.x, r.y, r.w, r.h), fill: 'black' }));
     });
+    renderClocks();
   }
 
   function initials(name) {
@@ -356,6 +359,7 @@
     renderAll();
     if (refit) fit();
     document.title = (window.VttConfig.title || 'Table') + ' — ' + mapName();
+    preloadNext();
     // the table's map is shared: whatever the GM shows, the player view follows
     if (!PLAYER && mapId && (State.state.table || {}).map !== mapId) State.commit('setTableMap', [mapId]);
     buildToolbar();
@@ -422,6 +426,7 @@
     const shapeTool = tool === 'circle' || tool === 'line' || tool === 'square';
     if (!PLAYER && tool !== 'select' && !(shapeTool && onEffect)) {     // with a shape tool, a click on an existing shape selects it instead of drawing
       drag = { kind: 'tool', start: toCell(p.x, p.y), cur: toCell(p.x, p.y) };
+      if (tool === 'brush') brushAt(drag.cur);
       svg.setPointerCapture(e.pointerId);
       return;
     }
@@ -476,6 +481,18 @@
     if (drag.kind === 'tool') {
       drag.cur = toCell(p.x, p.y);
       layers.preview.innerHTML = '';
+      if (tool === 'brush') {
+        brushAt(drag.cur);
+        return;
+      }
+      if (tool === 'ruler') {
+        const a = toPx(drag.start.x, drag.start.y);
+        const b = toPx(drag.cur.x, drag.cur.y);
+        const cells = Math.hypot(drag.cur.x - drag.start.x, drag.cur.y - drag.start.y);
+        layers.preview.appendChild(s('line', { class: 'ruler', x1: a.x, y1: a.y, x2: b.x, y2: b.y }));
+        layers.preview.appendChild(s('text', { class: 'ruler-label', x: b.x + 8, y: b.y - 8 }, [`${cells.toFixed(1)} cells`]));
+        return;
+      }
       const e2 = toolEffect(drag);
       if (e2) {
         const node = effectShape(e2, 'effect preview');
@@ -507,6 +524,10 @@
           persist();
           renderBase();
         }
+      } else if (tool === 'brush') {
+        persist();              // the circles were painted as the pointer moved
+      } else if (tool === 'ruler') {
+        /* a measure leaves nothing behind */
       } else if (moved) {
         const fx = toolEffect(drag);
         if (fx) {
@@ -557,6 +578,31 @@
       renderEffects();
       buildToolbar();
     }
+    if (selectedId && !(e.target instanceof HTMLInputElement)) {
+      const t = map.tokens.find((x) => x.id === selectedId);
+      const sizes = { 1: 0.5, 2: 1, 3: 2, 4: 3 };
+      if (t && sizes[e.key]) {
+        t.size = sizes[e.key];
+        persist();
+        renderTokens();
+        return;
+      }
+      if (t && e.key.toLowerCase() === 'h' && !e.ctrlKey && !e.metaKey) {
+        t.hidden = !t.hidden;
+        persist();
+        renderTokens();
+        return;
+      }
+      if (t && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        const copy = Object.assign({}, JSON.parse(JSON.stringify(t)), { id: State.genId('tk'), x: t.x + 1, y: t.y });
+        map.tokens.push(copy);
+        selectedId = copy.id;
+        persist();
+        renderTokens();
+        return;
+      }
+    }
     if ((e.key === 'Delete' || e.key === 'Backspace') && !(e.target instanceof HTMLInputElement)) {
       if (selectedEffect) {
         removeEffect(selectedEffect);
@@ -565,6 +611,52 @@
       }
     }
   });
+
+  // the fog brush: a circle of reveal under the pointer, one per cell moved
+  let brushRadius = 2;
+  let lastBrush = null;
+  function brushAt(c) {
+    const at = { x: Math.round(c.x * 2) / 2, y: Math.round(c.y * 2) / 2 };
+    if (lastBrush && Math.hypot(at.x - lastBrush.x, at.y - lastBrush.y) < 0.5) return;
+    lastBrush = at;
+    map.fog.revealed.push({ x: at.x, y: at.y, r: brushRadius });
+    renderBase();
+  }
+
+  // clocks over the map: every clock for the GM, the visible ones for players; the GM ticks them here
+  let clocksShown = true;
+  let clocksEl = null;
+  function renderClocks() {
+    if (clocksEl) clocksEl.remove();
+    clocksEl = null;
+    if (!clocksShown) return;
+    const all = (State.state.clocks || []).filter((c) => !PLAYER || c.visible !== false);
+    if (!all.length) return;
+    clocksEl = el('div', { class: 'vtt-clocks' }, all.map((c) => {
+      const row = el('div', { class: 'boxes clock' });
+      for (let i = 1; i <= c.segments; i++) {
+        const b = el('button', { class: 'box' + (i <= c.filled ? ' on' : ''), type: 'button', disabled: PLAYER || null, onclick: () => { if (!PLAYER) State.commit('setClock', [Object.assign({}, c, { filled: i <= c.filled && i === c.filled ? i - 1 : i })]); renderClocks(); } });
+        row.appendChild(b);
+      }
+      return el('div', { class: 'clock-row' }, [el('div', { class: 'track-head' }, [el('span', { class: 'track-name' }, [c.name, c.visible === false ? el('span', { class: 'muted' }, [' · GM']) : null]), el('span', { class: 'muted' }, [`${c.filled} / ${c.segments}`])]), row]);
+    }));
+    stage.appendChild(clocksEl);
+  }
+
+  // the next scene's map, fetched now so the switch is instant
+  function preloadNext() {
+    const list = scenes();
+    const i = list.findIndex((sc) => sc.id === sceneId);
+    const next = list[i + 1];
+    if (!next) return;
+    const d = Sys.mapDef(Sys.defaultMapId(next.id));
+    if (d && d.image) {
+      const img = new Image();
+      img.src = d.image;
+      preloaded = d.image;
+    }
+  }
+  let preloaded = null;
 
   function removeToken(id) {
     map.tokens = map.tokens.filter((t) => t.id !== id);
@@ -688,12 +780,14 @@
     map.tokens.push(Object.assign({ x: snap(at.x - 0.5), y: snap(at.y - 0.5), size: 1, hidden: false }, t, { id: t.id || State.genId('tk') }));
     persist();
     renderTokens();
+    syncHint();
   }
 
   function buildToolbar() {
     toolbar.innerHTML = '';
     if (PLAYER) {
-      toolbar.appendChild(el('div', { class: 'group' }, [el('b', {}, [mapName()]), el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), toolButton('ping', 'Ping')]));
+      const clocksBtn = el('button', { class: 'btn ghost' + (clocksShown ? ' active' : ''), onclick: () => { clocksShown = !clocksShown; renderClocks(); buildToolbar(); } }, ['Clocks']);
+      toolbar.appendChild(el('div', { class: 'group' }, [el('b', {}, [mapName()]), el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), toolButton('ping', 'Ping'), clocksBtn]));
       return;
     }
     // one entry per map, in scene order: a scene's floors, or the scene itself when it has no map
@@ -796,6 +890,7 @@
       toolButton('circle', 'Circle', 'Drag from centre'),
       toolButton('line', 'Line', 'Drag start to end'),
       toolButton('square', 'Square', 'Drag corner to corner'),
+      toolButton('ruler', 'Ruler', 'Drag to measure, in cells'),
       removeFx,
       clearFx,
     ]));
@@ -805,8 +900,12 @@
       el('span', { class: 'muted' }, ['Fog']),
       check('on', () => map.fog.enabled, (v) => { map.fog.enabled = v; }),
       toolButton('reveal', 'Reveal', 'Drag a rectangle to reveal'),
+      toolButton('brush', 'Brush', 'Paint a circle of reveal as you drag'),
+      numField('r', () => brushRadius, (v) => { brushRadius = Math.max(0.5, v); }, 0.5),
       resetFog,
     ]));
+    const clocksBtn = el('button', { class: 'btn ghost' + (clocksShown ? ' active' : ''), title: 'The campaign\'s clocks over the map', onclick: () => { clocksShown = !clocksShown; renderClocks(); buildToolbar(); } }, ['Clocks']);
+    toolbar.appendChild(el('div', { class: 'group' }, [clocksBtn]));
 
     const playerBtn = el('button', { class: 'btn', onclick: () => window.open(location.pathname + '?view=player' + (follow ? '' : '&map=' + encodeURIComponent(mapId)), (window.VttConfig.channel || 'vtt') + '-player') }, ['Open player view']);
     const legendBtn = el('button', { class: 'btn ghost' + (legendOpen ? ' active' : ''), title: 'The map’s key, from the book — for you, not the players' }, ['Legend']);
@@ -835,7 +934,7 @@
       return;
     }
     const shapes = map.effects.length ? ` · ${map.effects.length} shape${map.effects.length === 1 ? '' : 's'}: click one to select it` : '';
-    hint.textContent = note + (n ? `${n} token${n === 1 ? '' : 's'} · drag to move · right-click for hide, size, rename · Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
+    hint.textContent = note + (n ? `${n} token${n === 1 ? '' : 's'} · drag to move · right-click for hide, size, rename · selected: 1–4 size, H hide, Ctrl+D duplicate, Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
   }
 
   // ── bus ────────────────────────────────────────────────────────────
@@ -860,5 +959,5 @@
   switchMap(pinned || followedMap(), true);
   window.addEventListener('resize', applyView);
 
-  window.VttTable = { refresh, fit, map: () => map, mapId: () => mapId, scene: () => sceneId, tool: () => tool, addToken: addTokenAt, legend: () => legendOpen };
+  window.VttTable = { refresh, fit, map: () => map, mapId: () => mapId, scene: () => sceneId, tool: () => tool, addToken: addTokenAt, legend: () => legendOpen, preloaded: () => preloaded, clocksShown: () => clocksShown };
 })();

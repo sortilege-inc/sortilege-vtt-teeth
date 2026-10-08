@@ -150,6 +150,7 @@
         button('‹ Previous', () => idx > 0 && goTo(moduleId, pages[idx - 1].scene.id), 'ghost'),
         el('span', { class: 'muted' }, [`${page.phase} · ${idx + 1} of ${pages.length}`]),
         button('Next ›', () => idx < pages.length - 1 && goTo(moduleId, pages[idx + 1].scene.id), 'ghost'),
+        button('Print', () => window.print(), 'ghost tiny'),
       ]);
       const body = el('article', { class: 'scene' }, [
         nav,
@@ -265,7 +266,7 @@
         const t = D.entity(m.templateId);
         const tracks = Object.keys(m.live.tracks || {}).map((k) => `${k} ${m.live.tracks[k]}`).join(' · ');
         container.appendChild(el('div', { class: 'member' }, [
-          el('button', { class: 'card', type: 'button', onclick: () => Panels.select({ kind: 'party', id: m.id }) }, [
+          el('button', { class: 'card', type: 'button', title: 'Click to open in the Inspector · right-click for its own window', onclick: () => Panels.select({ kind: 'party', id: m.id }), oncontextmenu: (ev) => { ev.preventDefault(); window.open('gm/sheet.html?member=' + encodeURIComponent(m.id), 'sheet-' + m.id); } }, [
             el('div', { class: 'card-name' }, [m.name]),
             el('div', { class: 'card-sub' }, [t ? t.name + (t.type ? ' · ' + t.type : '') : m.templateId]),
             el('div', { class: 'card-desc' }, [tracks]),
@@ -460,6 +461,32 @@
   }
 
   // ── Campaign ───────────────────────────────────────────────────────
+  // Every GM note in play — scene notes per module, GM notes per party member — as plain text.
+  function downloadNotes() {
+    const lines = [`${S().campaign.name || 'Campaign'} — GM notes`, new Date().toLocaleString(), ''];
+    campaignModules().forEach((moduleId) => {
+      const arc = D.arc(moduleId);
+      lines.push(`== ${arc ? arc.name : moduleId} ==`);
+      Sys().pages(moduleId).forEach((p) => {
+        const st = progress(moduleId, p.scene.id);
+        if (!(st.notes || '').trim() && !st.done) return;
+        lines.push(`${st.done ? '[x]' : '[ ]'} ${p.scene.name}${st.notes ? '\n' + st.notes.trim() : ''}`, '');
+      });
+    });
+    const party = S().party || [];
+    if (party.some((m) => (m.notes || '').trim())) {
+      lines.push('== The party ==');
+      party.forEach((m) => { if ((m.notes || '').trim()) lines.push(`${m.name}\n${m.notes.trim()}`, ''); });
+    }
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${(S().campaign.name || 'campaign').replace(/[^A-Za-z0-9]+/g, '-').toLowerCase()}-notes.txt`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
   function renderCampaign(container, ctx) {
     const draw = () => {
       container.innerHTML = '';
@@ -526,8 +553,20 @@
         button('New campaign', () => { const n = prompt('Campaign name'); if (n) { State.create(n, { campaign: { modules: [], books: [] } }); location.reload(); } }),
         button('Save pack (download)', () => State.downloadPack()),
         button('Restore pack…', () => file.click(), 'ghost'),
+        button('Notes as text', () => downloadNotes(), 'ghost'),
         file,
       ]));
+      // the rolling autosaves this browser keeps (state.js: one a minute while playing, the last three)
+      const auto = el('div', { class: 'autosaves' }, [el('h4', {}, ['Autosaves', el('span', { class: 'muted' }, [' · this browser keeps the last three, a minute apart'])])]);
+      container.appendChild(auto);
+      State.listAutosaves().then((rows) => {
+        if (!rows.length) return auto.appendChild(el('div', { class: 'muted small' }, ['None yet — the first comes a minute into play.']));
+        auto.appendChild(el('ul', { class: 'items' }, rows.map((r) => el('li', {}, [
+          el('span', {}, [new Date(r.at).toLocaleString()]),
+          el('span', { class: 'muted' }, [` · ${(r.pack.party || []).length} in the party · ${Object.keys(r.pack.maps || {}).length} maps`]),
+          button('restore', () => { if (confirm(`Restore the autosave from ${new Date(r.at).toLocaleString()}? The current state of this campaign in this browser is replaced (save a pack first if in doubt).`)) State.restoreAutosave(r.key).then(() => location.reload()); }, 'ghost tiny'),
+        ]))));
+      }).catch(() => auto.appendChild(el('div', { class: 'muted small' }, ['Autosaves are not available in this browser.'])));
       container.appendChild(el('p', { class: 'muted small' }, ['A pack is the campaign as an instance: everything ticked, noted, revealed and tracked, as JSON. Keep packs in the campaign\'s own repo; this browser is a cache.']));
     };
     ctx.on('state:changed', draw);

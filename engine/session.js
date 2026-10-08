@@ -97,14 +97,14 @@ window.VttSession = (function () {
     const res = await fetch(CFG.workerUrl + '/session', { method: 'POST' });
     if (!res.ok) throw new Error('Could not create a session (HTTP ' + res.status + ').');
     const body = await res.json();
-    info = { role: 'gm', code: body.code, token: body.gmToken, base: CFG.workerUrl, campaign: State.id };
+    info = { role: 'gm', code: body.code, token: body.gmToken, base: CFG.workerUrl, campaign: State.id, startedAt: Date.now() };
     persist();
     connect();
     return current();
   }
 
   function join(code, token) {
-    info = { role: 'player', code: String(code).toUpperCase(), token: token || null, memberId: null, base: CFG.workerUrl };
+    info = { role: 'player', code: String(code).toUpperCase(), token: token || null, memberId: null, base: CFG.workerUrl, startedAt: Date.now() };
     persist();
     connect();
   }
@@ -154,6 +154,14 @@ window.VttSession = (function () {
       if (info) retry = setTimeout(connect, delay);
     };
     sock.onerror = () => {};
+  }
+
+  // what the room says about itself: { exists, createdAt, lastActive } (the Worker's GET)
+  async function roomInfo() {
+    if (!info) return null;
+    const res = await fetch(base() + '/session/' + encodeURIComponent(info.code));
+    if (!res.ok) return null;
+    return res.json();
   }
 
   // the player's "Retry now": drop the backoff and connect again
@@ -255,5 +263,5 @@ window.VttSession = (function () {
 
   if (info) connect();
 
-  return { start, join, leave, reconnect, claim, unclaim, reseed, current, onChange, joinUrl, memberId, role, configured };
+  return { start, join, leave, reconnect, roomInfo, claim, unclaim, reseed, current, onChange, joinUrl, memberId, role, configured };
 })();

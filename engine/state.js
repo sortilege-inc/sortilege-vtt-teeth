@@ -102,6 +102,58 @@ window.VttState = (function () {
     }
     register(state.campaign);
     if (Bus) Bus.emit('state:changed', Object.assign({ at: Date.now(), campaign: id }, change || { doc: snapshot() }));
+    autosave(false);
+  }
+
+  // Rolling autosaves: a minute apart while anything changes, the last three per campaign,
+  // in IndexedDB (localStorage holds only the live copy). Restorable from the Campaign panel.
+  const AUTO_EVERY = 60000;
+  const AUTO_KEEP = 3;
+  let lastAuto = 0;
+  function openDb() {
+    return new Promise((resolve, reject) => {
+      if (!window.indexedDB) return reject(new Error('no IndexedDB'));
+      const req = indexedDB.open(PREFIX + 'autosaves', 1);
+      req.onupgradeneeded = () => req.result.createObjectStore('packs', { keyPath: 'key' });
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  function autosave(force) {
+    if (!force && Date.now() - lastAuto < AUTO_EVERY) return Promise.resolve(false);
+    lastAuto = Date.now();
+    const at = Date.now();
+    const row = { key: id + ':' + at, campaign: id, at, pack: exportPack() };
+    return openDb().then((db) => new Promise((resolve) => {
+      const tx = db.transaction('packs', 'readwrite');
+      const store = tx.objectStore('packs');
+      store.put(row);
+      const all = store.getAll();
+      all.onsuccess = () => {
+        const mine = all.result.filter((r) => r.campaign === id).sort((a, b) => b.at - a.at);
+        mine.slice(AUTO_KEEP).forEach((r) => store.delete(r.key));
+      };
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    })).catch(() => false);
+  }
+  function listAutosaves() {
+    return openDb().then((db) => new Promise((resolve, reject) => {
+      const req = db.transaction('packs').objectStore('packs').getAll();
+      req.onsuccess = () => resolve(req.result.filter((r) => r.campaign === id).sort((a, b) => b.at - a.at));
+      req.onerror = () => reject(req.error);
+    }));
+  }
+  function restoreAutosave(key) {
+    return openDb().then((db) => new Promise((resolve, reject) => {
+      const req = db.transaction('packs').objectStore('packs').get(key);
+      req.onsuccess = () => {
+        if (!req.result) return reject(new Error('no such autosave'));
+        importPack(req.result.pack);
+        resolve(true);
+      };
+      req.onerror = () => reject(req.error);
+    }));
   }
 
   function snapshot() {
@@ -342,6 +394,6 @@ window.VttState = (function () {
     commit, seed, applyRemote, replaceShared, save, reload, ui, genId,
     listCampaigns, switchTo, create, remove,
     exportPack, importPack, downloadPack, PACK_KIND, PACK_VERSION,
-    undo, redo, history,
+    undo, redo, history, autosave, listAutosaves, restoreAutosave,
   };
 })();

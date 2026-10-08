@@ -419,3 +419,25 @@ a.card { text-decoration: none; display: block; }
   .sheet-head.with-portrait .portrait { width: 64px; height: 80px; }
   .play-bar .btn { font-size: 0.8rem; padding: 0.3rem 0.5rem; }
 }
+
+/* ── the GM sidebar: session meta, presets; the sheet window; print the scene ─ */
+.session-meta { display: flex; flex-direction: column; gap: 0.1rem; margin-top: 0.3rem; font-size: 0.78rem; }
+.session-idle.warn { color: var(--blood-2); font-weight: 600; }
+.presets .btn { font-family: var(--sc); letter-spacing: 0.05em; }
+body.sheet-window .play-main { max-width: 900px; }
+@media print {
+  body { display: block; background: #fff; }
+  #sidebar, .slot:not(.slot-scene), .slot-head, .scene-nav, .gm-notes textarea::placeholder, .on-the-table { display: none !important; }
+  .main, .main.wide { display: block; }
+  .slot.slot-scene { display: block; height: auto; border: 0; }
+  .slot-body { overflow: visible; padding: 0; }
+  .gm-notes textarea { border: 0; font: inherit; }
+}
+
+/* ── the table: clocks, the ruler ───────────────────────────────────── */
+.vtt-clocks { position: absolute; left: 0.7rem; bottom: 2rem; background: rgba(239, 230, 211, 0.92); border: 1px solid var(--ink); padding: 0.4rem 0.7rem; max-width: 320px; z-index: 8; font-size: 0.82rem; }
+.vtt-clocks .clock-row { margin: 0.15rem 0; }
+.vtt-clocks .box { width: 16px; height: 16px; }
+.vtt-clocks .box[disabled] { cursor: default; }
+.ruler { stroke: #fbf6ea; stroke-width: 3; stroke-dasharray: 10 6; pointer-events: none; }
+.ruler-label { font-family: var(--sc); font-size: 22px; fill: #fbf6ea; paint-order: stroke; stroke: #1a1613; stroke-width: 4px; pointer-events: none; }
