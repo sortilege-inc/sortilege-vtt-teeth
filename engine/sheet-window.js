@@ -6,6 +6,9 @@
   const State = window.VttState;
   const Bus = window.VttBus;
   const Sys = window.VttSystem;
+  const CFG = window.VttConfig || {};
+  const brand = CFG.title || 'Sheet';
+  document.querySelectorAll('.brand-title').forEach((n) => (n.textContent = brand));
   const main = document.getElementById('sheet-main');
   const status = document.getElementById('sheet-status');
   const id = new URLSearchParams(location.search).get('member');
@@ -17,10 +20,10 @@
     status.textContent = m ? State.state.campaign.name || '' : '';
     if (!m) {
       main.appendChild(el('div', { class: 'play-card' }, [el('p', { class: 'muted' }, ['No such character in the party.'])]));
-      document.title = 'TEETH — Sheet';
+      document.title = brand + ' — Sheet';
       return;
     }
-    document.title = 'TEETH — ' + m.name;
+    document.title = brand + ' — ' + m.name;
     main.appendChild(el('div', { class: 'play-card wide' }, [Sys.liveSheet(m, {})]));
   }
   Bus.on('state:changed', (p, meta) => { if (meta && meta.remote) render(); });
