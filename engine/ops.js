@@ -72,6 +72,35 @@
     return f ? f(s, args) : { name, args };
   }
 
+  // The op that would undo `name(args)` on state `s` as it is NOW (call before applying), or
+  // null when there is none worth having (a log line). Deterministic like the ops themselves.
+  const clone = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v)));
+  const INVERSE = {
+    setCampaign: (s, [p]) => { const prev = {}; Object.keys(p || {}).forEach((k) => (prev[k] = clone((s.campaign || {})[k]))); return ['setCampaign', [prev]]; },
+    setCurrentScene: (s, [mod]) => ['setCurrentScene', [mod, clone((s.current || {})[mod])]],
+    setSceneOrder: (s, [mod]) => ['setSceneOrder', [mod, clone((((s.order || {}).scenes || {})[mod]) || [])]],
+    setCastOrder: (s, [mod]) => ['setCastOrder', [mod, clone((((s.order || {}).cast || {})[mod]) || [])]],
+    setSceneDone: (s, [mod, sc]) => ['setSceneDone', [mod, sc, !!((((s.progress || {})[mod] || {})[sc] || {}).done)]],
+    setSceneNotes: (s, [mod, sc]) => ['setSceneNotes', [mod, sc, (((s.progress || {})[mod] || {})[sc] || {}).notes || '']],
+    setClueRevealed: (s, [mod, sc, clue]) => ['setClueRevealed', [mod, sc, clue, !!(((s.clues || {})[mod] || {})[sc + '::' + clue])]],
+    setClock: (s, [c]) => { const prev = (s.clocks || []).find((x) => x.id === c.id); return prev ? ['setClock', [clone(prev)]] : ['removeClock', [c.id]]; },
+    removeClock: (s, [id]) => { const prev = (s.clocks || []).find((x) => x.id === id); return prev ? ['setClock', [clone(prev)]] : null; },
+    addPartyMember: (s, [m]) => ((s.party || []).some((x) => x.id === m.id) ? null : ['removePartyMember', [m.id]]),
+    removePartyMember: (s, [id]) => { const prev = (s.party || []).find((x) => x.id === id); return prev ? ['addPartyMember', [clone(prev)]] : null; },
+    setPartyLive: (s, [id, p]) => { const m = (s.party || []).find((x) => x.id === id); if (!m) return null; const prev = {}; Object.keys(p || {}).forEach((k) => (prev[k] = clone((m.live || {})[k] || {}))); return ['setPartyLive', [id, prev]]; },
+    setPartyNotes: (s, [id]) => { const m = (s.party || []).find((x) => x.id === id); return m ? ['setPartyNotes', [id, m.notes || '']] : null; },
+    setPartyPlayerNotes: (s, [id]) => { const m = (s.party || []).find((x) => x.id === id); return m ? ['setPartyPlayerNotes', [id, m.playerNotes || '']] : null; },
+    setMapState: (s, [mapId]) => ['setMapState', [mapId, clone((s.maps || {})[mapId])]],
+    setTableMap: (s) => ['setTableMap', [clone((s.table || {}).map)]],
+    setTokenPosition: (s, [mapId, tid]) => { const t = (((s.maps || {})[mapId] || {}).tokens || []).find((x) => x.id === tid); return t ? ['setTokenPosition', [mapId, tid, t.x, t.y]] : null; },
+  };
+  function inverse(s, name, args) {
+    const f = INVERSE[name];
+    if (!f) return null;
+    const r = f(s, args || []);
+    return r ? { name: r[0], args: r[1] } : null;
+  }
+
   function sharedSlice(s) {
     const out = {};
     SHARED_KEYS.forEach((k) => {
@@ -200,5 +229,5 @@
     return doc;
   });
 
-  return { OPS, PLAYER_RULES, SHARED_KEYS, LOCAL, register, shared, playerFilter, apply, permits, playerView, forPlayers, sharedSlice };
+  return { OPS, PLAYER_RULES, SHARED_KEYS, LOCAL, register, shared, playerFilter, apply, permits, playerView, forPlayers, sharedSlice, inverse };
 });

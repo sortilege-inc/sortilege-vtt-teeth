@@ -150,10 +150,47 @@ window.VttState = (function () {
   }
 
   // ── ops ────────────────────────────────────────────────────────────
-  function commit(name, args) {
+  // Undo is per window and covers this window's own commits (what came in from elsewhere is
+  // someone else's to undo): the inverse op is computed before the op is applied and kept on
+  // a stack; undoing commits the inverse like any other op, so every window and the room follow.
+  const undoStack = [];
+  const redoStack = [];
+  const HISTORY = 30;
+
+  function commit(name, args, opts) {
+    const inv = Ops.inverse ? Ops.inverse(state, name, args) : null;
     Ops.apply(state, name, args);
     save({ op: { name, args } });
     if (Bus) Bus.emit('op', { name, args, at: Date.now() });
+    if (inv && !(opts && opts.noHistory)) {
+      undoStack.push({ name, args: JSON.parse(JSON.stringify(args || [])), inv });
+      if (undoStack.length > HISTORY) undoStack.shift();
+      redoStack.length = 0;
+      if (Bus) Bus.emit('history', { undo: undoStack.length, redo: redoStack.length }, { local: true });
+    }
+  }
+
+  function undo() {
+    const e = undoStack.pop();
+    if (!e) return false;
+    commit(e.inv.name, e.inv.args, { noHistory: true });
+    redoStack.push({ name: e.name, args: e.args });
+    if (Bus) Bus.emit('history', { undo: undoStack.length, redo: redoStack.length }, { local: true });
+    return true;
+  }
+
+  function redo() {
+    const r = redoStack.pop();
+    if (!r) return false;
+    const inv = Ops.inverse ? Ops.inverse(state, r.name, r.args) : null;
+    commit(r.name, r.args, { noHistory: true });
+    if (inv) undoStack.push({ name: r.name, args: r.args, inv });
+    if (Bus) Bus.emit('history', { undo: undoStack.length, redo: redoStack.length }, { local: true });
+    return true;
+  }
+
+  function history() {
+    return { undo: undoStack.length, redo: redoStack.length, last: undoStack.length ? undoStack[undoStack.length - 1].name : null };
   }
 
   function applyRemote(name, args) {
@@ -305,5 +342,6 @@ window.VttState = (function () {
     commit, seed, applyRemote, replaceShared, save, reload, ui, genId,
     listCampaigns, switchTo, create, remove,
     exportPack, importPack, downloadPack, PACK_KIND, PACK_VERSION,
+    undo, redo, history,
   };
 })();

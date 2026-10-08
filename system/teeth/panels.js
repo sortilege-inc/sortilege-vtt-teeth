@@ -107,6 +107,31 @@
     return sceneId + '::' + name;
   }
 
+  // The scene's map and figures, with a button each to put them on the table from here.
+  function onTheTable(s) {
+    const Sy = Sys();
+    const mapId = Sy.defaultMapId(s.id);
+    const def = Sy.mapDef(mapId);
+    const figures = Sy.sceneFigures(s.id);
+    const party = (Sy.tokenSources(s.id).find((g) => g.label === 'Party') || { items: [] }).items;
+    const onMap = ((S().maps || {})[mapId] || { tokens: [] }).tokens;
+    const placed = (f) => onMap.some((t) => t.label === f.label);
+    const put = (items) => {
+      const r = Sy.placeTokens(s.id, items);
+      Bus.emit('scene:changed', { moduleId: null, sceneId: s.id });
+      return r;
+    };
+    return el('section', { class: 'on-the-table' }, [
+      el('h4', {}, ['On the table', el('span', { class: 'muted' }, [def ? ` · ${def.name}` : ' · no map for this scene yet — the table shows a blank grid'])]),
+      figures.length ? el('div', { class: 'chiprow' }, figures.map((f) => {
+        const b = button(f.label, () => put([f]), 'ghost tiny' + (placed(f) ? ' placed' : ''));
+        b.title = placed(f) ? 'Already on this map — click to add another' : 'Put on the table';
+        return b;
+      }).concat([button('All figures', () => put(figures.filter((f) => !placed(f))), 'tiny')])) : el('div', { class: 'muted' }, ['No figures named for this scene.']),
+      party.length ? el('div', { class: 'chiprow' }, [button('Party to the table', () => put(party), 'ghost tiny'), el('span', { class: 'muted' }, [`${party.filter((p) => onMap.some((t) => t.owner === p.owner)).length} of ${party.length} there`])]) : null,
+    ]);
+  }
+
   function renderScene(container, ctx) {
     const draw = () => {
       container.innerHTML = '';
@@ -152,6 +177,7 @@
         s.resolutions.length ? el('section', {}, [el('h4', {}, ['Resolutions']), el('table', { class: 'grid' }, [el('tbody', {}, s.resolutions.map((r) => el('tr', {}, [el('th', {}, [r.condition || r.name]), el('td', {}, [r.outcome])])))])]) : null,
         s.guidance.length ? el('section', {}, [el('h4', {}, ['GM guidance']), ...s.guidance.map(E.guidance)]) : null,
         s.refs && s.refs.length ? el('section', {}, [el('h4', {}, ['See also']), el('div', { class: 'chips' }, dedupeRefs(s.refs).map((r) => E.link({ hash: r.hash, name: r.name }, r.label)))]) : null,
+        onTheTable(s),
         el('section', { class: 'gm-notes' }, [
           el('h4', {}, ['GM notes ', el('span', { class: 'muted' }, ['(never sent to players)'])]),
           el('textarea', { rows: 4, placeholder: 'Notes for this scene…', oninput: debounce((ev) => State.commit('setSceneNotes', [moduleId, s.id, ev.target.value]), 400) }, [st.notes || '']),

@@ -158,7 +158,25 @@
   if (wc) {
     wc.appendChild(el('button', { class: 'btn', type: 'button', onclick: () => window.open(CFG.pages.table, CFG.channel + '-table') }, ['Open table']));
     wc.appendChild(el('button', { class: 'btn ghost', type: 'button', onclick: () => window.open(CFG.pages.table + '?view=player', CFG.channel + '-player') }, ['Open player view']));
+    // undo / redo of this page's own changes (Ctrl+Z / Ctrl+Shift+Z)
+    const undoBtn = el('button', { class: 'btn ghost tiny', type: 'button', title: 'Undo the last change made on this page (Ctrl+Z)', onclick: () => State.undo() }, ['Undo']);
+    const redoBtn = el('button', { class: 'btn ghost tiny', type: 'button', title: 'Redo (Ctrl+Shift+Z)', onclick: () => State.redo() }, ['Redo']);
+    const syncHistory = () => {
+      const h = State.history();
+      undoBtn.disabled = !h.undo;
+      redoBtn.disabled = !h.redo;
+      undoBtn.textContent = h.undo ? `Undo (${h.undo})` : 'Undo';
+    };
+    wc.appendChild(el('div', { class: 'chiprow history' }, [undoBtn, redoBtn]));
+    window.VttBus.on('history', syncHistory);
+    syncHistory();
   }
+  document.addEventListener('keydown', (ev) => {
+    if (!(ev.ctrlKey || ev.metaKey) || ev.key.toLowerCase() !== 'z' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
+    ev.preventDefault();
+    if (ev.shiftKey) State.redo();
+    else State.undo();
+  });
 
   window.VttApp = { open, render, mode: () => mode };
 

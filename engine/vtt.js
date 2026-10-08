@@ -121,8 +121,11 @@
     return { image: null, w: 2400, h: 1600, grid: { size: 80, ox: 0, oy: 0, show: true, snap: true }, tokens: [], effects: [], fog: { enabled: false, revealed: [] } };
   }
 
+  // The table works on its own copy of the map and commits copies back: the state's object
+  // is never mutated in place, so an op's inverse (undo) sees the state as it was.
   function loadMap() {
     let m = (State.state.maps || {})[mapId];
+    if (m) m = JSON.parse(JSON.stringify(m));
     if (!m) {
       m = blankMap();
       const d = Sys.mapDef(mapId);
@@ -132,7 +135,7 @@
         m.h = d.h;
         Object.assign(m.grid, d.grid || {});
       }
-      if (!PLAYER && mapId) State.commit('setMapState', [mapId, m]);
+      if (!PLAYER && mapId) State.commit('setMapState', [mapId, JSON.parse(JSON.stringify(m))]);
     }
     m.tokens = m.tokens || [];
     m.effects = m.effects || [];
@@ -141,7 +144,7 @@
   }
 
   function persist() {
-    if (!PLAYER && mapId) State.commit('setMapState', [mapId, map]);
+    if (!PLAYER && mapId) State.commit('setMapState', [mapId, JSON.parse(JSON.stringify(map))]);
   }
 
   // ── geometry ───────────────────────────────────────────────────────
@@ -538,6 +541,13 @@
   }
 
   window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !(e.target instanceof HTMLInputElement)) {
+      e.preventDefault();
+      if (e.shiftKey) State.redo(); else State.undo();
+      refresh();
+      buildToolbar();
+      return;
+    }
     if (PLAYER) return;
     if (e.key === 'Escape') {
       tool = 'select';
@@ -806,7 +816,10 @@
       buildToolbar();
       renderLegend();
     });
-    toolbar.appendChild(el('div', { class: 'group last' }, [legendBtn, el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), playerBtn]));
+    const h = State.history ? State.history() : { undo: 0 };
+    const undoBtn = el('button', { class: 'btn ghost', title: 'Undo the last change made in this window (Ctrl+Z)', onclick: () => { State.undo(); refresh(); buildToolbar(); } }, [h.undo ? `Undo (${h.undo})` : 'Undo']);
+    undoBtn.disabled = !h.undo;
+    toolbar.appendChild(el('div', { class: 'group last' }, [undoBtn, legendBtn, el('button', { class: 'btn ghost', onclick: fit }, ['Fit']), playerBtn]));
   }
 
   function syncHint() {
@@ -839,6 +852,7 @@
   Bus.on('ping', (p) => {
     if (p && p.mapId === mapId) showPing(p.x, p.y);
   });
+  Bus.on('history', () => buildToolbar());     // the Undo button follows this window's stack
 
   // ── boot ───────────────────────────────────────────────────────────
   buildLayers();

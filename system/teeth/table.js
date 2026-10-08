@@ -96,6 +96,51 @@ window.VttSystem = (function () {
     return [];
   }
 
+  // Put figures on a scene's map from the GM's page (the Scene panel): the map state is made
+  // the way the table makes it, tokens staged across the top-centre a cell apart. A party
+  // member already on the map is not added twice.
+  function blankMapFor(mapId) {
+    const d = mapDef(mapId);
+    const m = { image: null, w: 2400, h: 1600, grid: { size: 80, ox: 0, oy: 0, show: true, snap: true }, tokens: [], effects: [], fog: { enabled: false, revealed: [] } };
+    if (d) {
+      m.image = d.image;
+      m.w = d.w;
+      m.h = d.h;
+      Object.assign(m.grid, d.grid || {});
+    }
+    return m;
+  }
+  function placeTokens(sceneId, items) {
+    const mapId = defaultMapId(sceneId);
+    const m = S().maps && S().maps[mapId] ? JSON.parse(JSON.stringify(S().maps[mapId])) : blankMapFor(mapId);
+    m.tokens = m.tokens || [];
+    let added = 0;
+    items.forEach((it) => {
+      if (it.owner && m.tokens.some((t) => t.owner === it.owner)) return;
+      const i = m.tokens.length;
+      const g = m.grid;
+      const c = g.size;
+      const ratio = g.ratio || 0.5;
+      const px = m.w / 2 + ((i % 10) - 4.5) * c;
+      const py = c * (g.iso ? ratio : 1) * (1 + Math.floor(i / 10) * 1.2);
+      let cx;
+      let cy;
+      if (g.iso) {
+        const u = (px - g.ox) / (c / 2);
+        const v = (py - g.oy) / (c * ratio / 2);
+        cx = (u + v) / 2;
+        cy = (v - u) / 2;
+      } else {
+        cx = (px - g.ox) / c;
+        cy = (py - g.oy) / c;
+      }
+      m.tokens.push(Object.assign({ x: Math.round(cx - 0.5), y: Math.round(cy - 0.5), size: 1, hidden: false }, it, { id: State.genId('tk') }));
+      added += 1;
+    });
+    if (added) State.commit('setMapState', [mapId, m]);
+    return { mapId, added };
+  }
+
   function portrait(entityId) {
     const e = D.entity(entityId);
     return (e && PORTRAITS[e.name]) || null;
@@ -242,8 +287,9 @@ window.VttSystem = (function () {
     const m = (S().party || []).find((x) => x.id === t.owner);
     if (!m) return null;
     const tracks = m.live.tracks || {};
-    const text = Object.keys(tracks).map((k) => `${k} ${tracks[k]}`).join(' · ');
-    return { text, pips: [] };
+    const conds = window.TeethSheet && window.TeethSheet.conditions ? window.TeethSheet.conditions(m) : [];
+    const text = Object.keys(tracks).map((k) => `${k} ${tracks[k]}`).concat(conds).join(' · ');
+    return { text, pips: [], cls: conds.length ? 'afflicted' : '' };
   }
 
   function selectToken(t) {
@@ -270,5 +316,5 @@ window.VttSystem = (function () {
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
 
-  return { scenes, pages, cast, booksFor, playBooks, portrait, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, memberSubtitle, MODULE_MAPS };
 })();

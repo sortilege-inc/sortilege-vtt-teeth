@@ -59,7 +59,9 @@ Inspector), **Clocks** (the books' clocks or your own, each GM-only or shown to 
 **Cast** (drag to arrange), **Rules & Books** (search everything with `/`, or browse a book), **Lore** and
 **Campaign** (which modules and books are in play; save / restore the campaign as a pack). Any
 table the books roll on has a **Roll on this table** button in the Inspector.
-Everything you tick or type is saved in this browser as you go.
+Everything you tick or type is saved in this browser as you go; **Undo** (Ctrl+Z, with Redo)
+takes back this window's own changes, on the GM page, the table and the player's page alike. The
+Scene panel's **On the table** puts the scene's figures and the party on its map from here.
 
 **Open table** puts the current scene's map in its own window (`gm/vtt.html`): grid calibration,
 tokens for the party and the cast (add them from the toolbar; drag to move; right-click to hide,
@@ -83,7 +85,10 @@ follows whichever map the GM's table is showing. Map images live in `assets/maps
 — or **Load my character file…**, on the join screen or the claim screen, brings the one they
 made on the site's creator: it joins the party (and so the campaign pack) and is theirs the
 moment the room is online —
-and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes; they
+and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their own notes, an
+**Actions** bar (Push +1D / +1E and Assist at the book's cost in Guts or Stress, logged; free
++1D / +1E toggles for the next roll), reminders of hysteria, injury and a used-up resource, and
+*At the table*, everyone's rolls; a banner with *Retry now* appears if the connection drops; they
 can open the table in player view and move their own token, and **Download my character** saves
 the character as played right now — the same file the join screen takes back next time. Everything they do shows up live
 on the GM's page and table; everything the GM does to their character shows up live on theirs.

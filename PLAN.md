@@ -195,6 +195,26 @@ toolbar's Remove…", a *Remove circle* button in the toolbar) and Remove took i
 square opened a menu (Label / Remove square), Label set "Lantern oil" as its title and the menu's
 Remove took it; Clear (confirmed) emptied the rest and its button went with them. Map restored.
 
+**The review batch (2026-10-07, owner's picks):** decisions 42–47. Proof on localhost through the
+real controls, GM page: Dr Nabeel Uddin's sheet showed the Actions bar (*Actions · Guts 0 / 8*,
+Push +1D / +1E at 2 Guts, Assist at 1 Guts with Mr Trode Wickle to pick, "in the book" links,
++1D / +1E next-roll toggles); Push +1D took Guts to 2, logged "pushes themselves: 2 Guts for +1D",
+and the Brawn roll carried it (base 1, +1D, two dice, line "Brawn 1 +1D") then cleared; +1E next
+roll gave "Wit 3 +1E"; Assist took Guts to 3 and logged it; at Guts 8 both Push buttons disabled
+with "No Guts left"; picking Wild panic and filling an injury put "Hysteria: Wild panic",
+"Injured: Level one · Less Effect" and "Guts used up" on the head and in the token's status;
+Ctrl+Z twice undid the injury then the pick, Ctrl+Shift+Z brought the pick back, the sidebar's
+Undo counted. Scene panel at *The Farmhouse*: *On the table · The Farmhouse*, buttons for the
+farmer, his wife, All figures, Party to the table — the farmer and both party members landed on
+`hog-farm` ("2 of 2 there"). Table: adding a Hogman made the Undo button read (1); clicking it took
+the token off the map and the state (found and fixed on the way: the table had been mutating the
+state's own map object, so an inverse saw the change already made — it now works on copies).
+Player on 127.0.0.1 in room DA9TR, phone viewport 375×812: the sheet ran Actions bar → attributes
+→ *At the table* (the GM's four log lines) → tracks, 24 px boxes; the player set Guts to 2 and
+pushed +1E: Guts 4 on the GM's page, the line in the GM's log and the token status; joining a room
+that does not exist showed the banner "Lost the table — reconnecting…" with Retry now. Test
+members, tokens, session and campaign reverted.
+
 **Players load their own (2026-09-19, owner's ask):** decision 31. Proof over the deployed
 Worker (version 9de18ac9), GM on localhost, player on 127.0.0.1 (room HN6RU): the player's claim
 screen showed *Load my character file…*; a character file read through the loader's path was
@@ -279,6 +299,12 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 39 | Each scene's figures are offered first in the add-token menu, under *In this scene*, as the scene's own text names them (`SCENE_FIGURES`, by module and scene name): a Hogman wears the horde's token, a person the generic one, an animal its initials. Hand-listed in the system module because the corpus links no people to the one-shots' scenes (their refs are rules terms) | Owner's ask 2026-10-07. Written for Night of the Hogmen; Blood Cotillion's and Stranger's scenes are still to be listed. |
 | 40 | A one-shot playbook's Special Abilities carry no titles in the book — the corpus says so at the `Sheet Ability` type ("the DEF names are authored labels") — so the sheet shows each ability's text as the item, not "X Ability 1" | Owner asked whether the pregens' abilities should have names (2026-10-07): they don't; the labels were the converter's. |
 | 41 | Shapes drawn with the circle, line and square tools are selected by a click (dashed highlight), removed by the toolbar's **Remove** button or the Delete key, labelled or removed from a right-click menu, and all cleared at once by **Clear** (confirmed); the hint names the selection. Right-click no longer deletes a shape outright | Owner 2026-10-07: there was no visible way to select or delete a shape — selection and Delete existed but nothing said so, and right-click deleted without warning. |
+| 42 | **Undo / redo**, per window, of that window's own commits: `Ops.inverse(state, name, args)` computes the inverse op before the op is applied (previous live sub-objects, token position, whole map state, clock, member, notes, scene, order, campaign fields; a log line has none); `State.undo()` commits the inverse like any other op, so sibling windows and the room follow; a 30-deep stack with redo. Ctrl+Z / Ctrl+Shift+Z on the GM page, the table and the player's page; an Undo button with a count on the GM page and the table | Owner's review ask 2026-10-07. Inverses computed from state rather than snapshots keep the room's document and the op stream the single source. |
+| 43 | **Rolls carry modifiers.** A sheet's Actions bar arms +1D / +1E for the next roll (free toggles for an item or a bargain with the GM) and the roll logs base, extra dice, effect and why; the roll line reads "Brawn 0 +1D +1E" | Owner's review ask: the book's +1D / +1E had to be done in the player's head. |
+| 44 | **Push and Assist as named actions**, at the book's costs — 2 of the resource for a push (+1D or +1E), 1 to assist another player (+1E) — on Guts where the sheet has it (the Hogmen) else Stress, both of which fill; each spends through `setPartyLive` (undoable) and writes an `action` line to the log; at the limit the buttons disable with the reason. "In the book" links beside them open the core's Stress Sources or the one-shot's Guts / Stress and Team Actions sections | Owner's review ask. The costs are the same in every book read (core, Hogmen, Cotillion, Stranger). |
+| 45 | **Reminders.** `TeethSheet.conditions(m)` — the behaviour pick at the limit (Hysteria / Aberrant / Erratic Behaviour), the worst injury filled with its penalty, the resource used up — as chips on the sheet head and in the party token's status line (dashed ring) | Owner's review ask. |
+| 46 | **The player's page** shows *At the table*, the last ten rolls and named actions of everyone (the log as the room already shares it), a reconnect banner with *Retry now* (`Session.reconnect()` drops the backoff) whenever the session is active but not online, and on a phone (≤600 px) puts the Actions bar, the attributes and the roll feed first with larger targets | Owner's review asks. |
+| 47 | **On the table** in the Scene panel: the scene's map name, a button per figure (and *All figures*), *Party to the table* with a count of who is there; `VttSystem.placeTokens` builds the map state the way the table does and stages tokens a cell apart | Owner's review ask: the figures were three clicks away in another window. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |
 | 14 | `wrangler dev` was run from Bash for the M5 proof because the preview harness had reached its five-servers-per-folder limit (four belong to other chats); stopped after the test | Reported as the deviation it is; the launch entry `vtt-teeth-worker` exists for the harness. |

@@ -156,6 +156,15 @@ window.VttSession = (function () {
     sock.onerror = () => {};
   }
 
+  // the player's "Retry now": drop the backoff and connect again
+  function reconnect() {
+    if (!info) return;
+    if (retry) clearTimeout(retry);
+    retry = null;
+    failures = 0;
+    connect();
+  }
+
   function send(msg) {
     if (ws && ws.readyState === 1) ws.send(JSON.stringify(msg));
   }
@@ -246,5 +255,5 @@ window.VttSession = (function () {
 
   if (info) connect();
 
-  return { start, join, leave, claim, unclaim, reseed, current, onChange, joinUrl, memberId, role, configured };
+  return { start, join, leave, reconnect, claim, unclaim, reseed, current, onChange, joinUrl, memberId, role, configured };
 })();

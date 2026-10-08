@@ -224,18 +224,129 @@ window.TeethSheet = (function () {
     return { dice, kept: [Math.min.apply(null, dice)], zero: true };
   }
 
+  // What the next roll carries beyond the rating: dice from a push or the GM's bargain, effect
+  // from a push or an assist. Per member, per window, cleared by the roll it goes on.
+  const armed = {};
+  function armedFor(m) {
+    return armed[m.id] || (armed[m.id] = { dice: 0, effect: 0, why: [] });
+  }
+
   function doRoll(m, axis, rating, extra) {
     const r = rollEntity();
-    const pool = rollPool(rating + (extra || 0));
+    const a = armedFor(m);
+    const bonus = (extra || 0) + a.dice;
+    const pool = rollPool(rating + bonus);
     const res = ladder(pool.kept, r);
     const entry = {
-      at: new Date().toISOString(), kind: 'roll', memberId: m.id, who: m.name, axis, rating: rating + (extra || 0),
+      at: new Date().toISOString(), kind: 'roll', memberId: m.id, who: m.name, axis, rating: rating + bonus,
+      base: rating, extra: bonus, effect: a.effect, why: a.why.slice(),
       dice: pool.dice, zero: pool.zero, band: res.band, text: res.text,
     };
+    armed[m.id] = { dice: 0, effect: 0, why: [] };
     if (m.preview) return entry;
     State.commit('appendLog', [entry]);
     Bus.emit('roll', entry);
     return entry;
+  }
+
+  // ── named actions: Push, Assist (the book's costs: 2 and 1 of Guts or Stress) ──
+  // The resource is the sheet's Guts track where it has one (the Hogmen), else its Stress;
+  // both fill. At the limit the book's condition applies (Hysteria / Aberrant / Erratic) and
+  // the sheet says so instead of spending.
+  function resourceOf(sp) {
+    return sp.tracks.find((t) => t.name === 'Guts') || sp.tracks.find((t) => t.name === 'Stress') || null;
+  }
+  const COSTS = { push: 2, assist: 1 };
+  // the book's own words on these, for the link beside the buttons: the core's Stress Sources,
+  // a one-shot's Guts / Stress and Team Actions sections (the character's book first)
+  function ruleLink(m, names) {
+    const t = D.entity(m.templateId);
+    const bs = (t ? [t.book] : []).concat(books() || []);
+    for (const bid of bs) {
+      const e = D.all([bid]).find((x) => names.indexOf(x.name) !== -1 && x.form === 'DEF' && (x.desc || x.props.some((p) => p.name === 'Cost')));
+      if (e) return E.link({ hash: e.id, name: e.name }, 'in the book');
+    }
+    return null;
+  }
+  function logAction(m, text) {
+    const entry = { at: new Date().toISOString(), kind: 'action', memberId: m.id, who: m.name, text };
+    if (m.preview) return entry;
+    State.commit('appendLog', [entry]);
+    return entry;
+  }
+  function spend(m, res, n) {
+    const cur = (m.live.tracks || {})[res.name] || 0;
+    patch(m, 'tracks', { [res.name]: Math.min(res.max, cur + n) });
+  }
+  function actionsBar(m, sp, opts, redraw) {
+    const res = resourceOf(sp);
+    if (!res) return null;
+    const cur = (m.live.tracks || {})[res.name] || 0;
+    const left = res.max - cur;
+    const a = armedFor(m);
+    const spent = (n) => (left >= n ? null : `No ${res.name} left — ${left} of ${n} needed`);
+    const pushBtn = (what) => {
+      const b = button(`Push +1${what} (${COSTS.push} ${res.name})`, () => {
+        spend(m, res, COSTS.push);
+        if (what === 'D') a.dice += 1; else a.effect += 1;
+        a.why.push('push');
+        logAction(m, `${m.name} pushes themselves: ${COSTS.push} ${res.name} for +1${what}`);
+        redraw();
+      }, 'ghost tiny');
+      const why = spent(COSTS.push);
+      if (why) { b.disabled = true; b.title = why; }
+      return b;
+    };
+    const others = (S().party || []).filter((x) => x.id !== m.id);
+    const who = el('select', { class: 'vtt-num assist-who' }, others.map((o) => el('option', { value: o.id }, [o.name])));
+    const assistBtn = button(`Assist (${COSTS.assist} ${res.name})`, () => {
+      const o = others.find((x) => x.id === who.value);
+      if (!o) return;
+      spend(m, res, COSTS.assist);
+      logAction(m, `${m.name} assists ${o.name}: ${COSTS.assist} ${res.name} for +1E`);
+      redraw();
+    }, 'ghost tiny');
+    const whyA = !others.length ? 'No one else in the party to assist' : spent(COSTS.assist);
+    if (whyA) { assistBtn.disabled = true; assistBtn.title = whyA; }
+    const toggle = (what) => {
+      const on = what === 'D' ? a.dice > 0 : a.effect > 0;
+      return el('button', { class: 'btn ghost tiny' + (on ? ' active' : ''), type: 'button', title: `Carry +1${what} on the next roll without spending (an item, a bargain with the GM, an ally's assist)`, onclick: () => { if (what === 'D') a.dice = on ? 0 : 1; else a.effect = on ? 0 : 1; redraw(); } }, [`+1${what} next roll${on ? ' ✓' : ''}`]);
+    };
+    const armedNote = a.dice || a.effect ? el('span', { class: 'muted' }, [`next roll: ${a.dice ? '+' + a.dice + 'D ' : ''}${a.effect ? '+' + a.effect + 'E' : ''}`]) : null;
+    return el('section', { class: 'actions-bar' }, [
+      el('h4', {}, ['Actions', el('span', { class: 'muted' }, [` · ${res.name} ${cur} / ${res.max}`]), ' ', ruleLink(m, ['Push themselves', 'Guts', 'Stress'])]),
+      el('div', { class: 'chiprow' }, [pushBtn('D'), pushBtn('E'), others.length ? who : null, assistBtn, ruleLink(m, ['Assist a teammate', 'Team Actions'])]),
+      el('div', { class: 'chiprow' }, [toggle('D'), toggle('E'), armedNote]),
+    ]);
+  }
+
+  // What the token and the sheet head remind the table of: the behaviour the book imposes at
+  // the limit, the worst injury filled, the resource at its limit. Plain strings.
+  const BEHAVIOUR_PICKS = ['Hysteria', 'Aberrant Behaviour', 'Erratic Behaviour'];
+  function conditions(m) {
+    const out = [];
+    const picks = m.live.picks || {};
+    BEHAVIOUR_PICKS.forEach((name) => {
+      (picks[name] || []).forEach((h) => {
+        const e = D.entity(h);
+        out.push(`${name}: ${e ? e.name : h}`);
+      });
+    });
+    const t = D.entity(m.templateId);
+    const levels = t ? D.byType('Injury Level', [t.book]) : [];
+    const lines = (m.live.texts || {}).Injuries || [];
+    let worst = null;
+    levels.forEach((lv) => {
+      if (lines.some((x) => typeof x === 'object' && x.slot && x.slot.indexOf(lv.name + ' ') === 0 && x.text)) worst = lv;
+    });
+    if (worst) {
+      const pen = D.propValue(worst, 'Penalty');
+      out.push(`Injured: ${worst.name}${pen ? ' · ' + pen : ''}`);
+    }
+    const sp = t ? spec(t) : null;
+    const res = sp ? resourceOf(sp) : null;
+    if (res && ((m.live.tracks || {})[res.name] || 0) >= res.max) out.push(`${res.name} used up`);
+    return out;
   }
 
   // ── rendering ──────────────────────────────────────────────────────
@@ -369,7 +480,7 @@ window.TeethSheet = (function () {
 
   function rollLine(entry) {
     return el('div', { class: 'roll-line band-' + entry.band.replace(/[^a-z0-9]/gi, '').toLowerCase() }, [
-      el('span', { class: 'roll-who' }, [entry.who + ' · ' + entry.axis + ' ' + entry.rating]),
+      el('span', { class: 'roll-who' }, [entry.who + ' · ' + entry.axis + ' ' + (entry.extra ? `${entry.base} +${entry.extra}D` : entry.rating) + (entry.effect ? ` +${entry.effect}E` : '')]),
       el('span', { class: 'roll-dice' }, entry.dice.map((d) => el('span', { class: 'die' + (entry.zero && d !== Math.min.apply(null, entry.dice) ? ' dropped' : '') }, [String(d)]))),
       el('b', {}, [entry.band]),
       entry.text ? el('span', { class: 'roll-text' }, [entry.text]) : null,
@@ -386,16 +497,25 @@ window.TeethSheet = (function () {
     const log = (entry) => rollLog.prepend(rollLine(entry));
     (S().log || []).filter((x) => x.kind === 'roll' && x.memberId === m.id).slice(-5).reverse().forEach((x) => rollLog.appendChild(rollLine(x)));
     const face = window.VttSystem && window.VttSystem.portrait ? window.VttSystem.portrait(t.id) : null;
+    const conds = conditions(m);
     const header = el('header', { class: 'sheet-head' + (face ? ' with-portrait' : '') }, [
       face ? el('img', { class: 'portrait', src: face, alt: '' }) : null,
       el('h2', {}, [m.name]),
+      conds.length ? el('div', { class: 'reminders' }, conds.map((c) => el('span', { class: 'chip warn' }, [c]))) : null,
       el('div', { class: 'meta' }, [E.link({ hash: t.id, name: t.name }), el('span', { class: 'muted' }, [t.form === 'ACTOR' ? 'a shared sheet' : (t.type || '')])]),
       ...sp.header.map((h) => h.ref ? el('div', { class: 'prop' }, [el('div', { class: 'prop-k' }, [h.name]), el('div', { class: 'prop-v' }, [E.link(h.ref)])])
         : typeof h.value === 'string' && h.value.length > 60 ? el('details', { class: 'sheet-text' }, [el('summary', {}, [h.name]), paragraphs(h.value, 'prose small')])
         : el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [h.name + ': ']), String(h.value)])),
       ...Object.keys(m.live.fields || {}).filter((k) => m.live.fields[k]).map((k) => el('div', { class: 'tagline' }, [el('span', { class: 'muted' }, [k + ': ']), String(m.live.fields[k])])),
     ]);
+    // a redraw of this sheet in place (the actions bar and the armed modifiers live in this window)
+    const redraw = () => {
+      const fresh = live(m, opts);
+      if (article.parentNode) article.parentNode.replaceChild(fresh, article);
+      if (m.preview && m.preview.onChange) m.preview.onChange();
+    };
     const body = el('div', { class: 'sheet-body' }, [
+      actionsBar(m, sp, opts, redraw),
       sp.tracks.length ? el('section', { class: 'tracks' }, [el('h4', {}, ['Tracks']), ...sp.tracks.map((tr) => trackRow(m, tr))]) : null,
       sp.counters.length ? el('section', { class: 'counters' }, sp.counters.map((c) => counterRow(m, c))) : null,
       ...sp.ratings.map((r) => ratingRows(m, r, log)),
@@ -413,7 +533,8 @@ window.TeethSheet = (function () {
         el('textarea', { rows: 3, oninput: debounce((ev) => State.commit('setPartyPlayerNotes', [m.id, ev.target.value]), 400) }, [m.playerNotes || '']),
       ]),
     ]);
-    return el('article', { class: 'sheet' }, [header, body]);
+    const article = el('article', { class: 'sheet' }, [header, body]);
+    return article;
   }
 
   // The Inspector's view of a TEMPLATE: the entity as printed plus "Add to party".
@@ -466,5 +587,5 @@ window.TeethSheet = (function () {
     return Object.assign({}, m, { id: State.genId('pc'), notes: '', preview: undefined, source: { kind: 'file', name: fileName || null, exportedAt: obj.exportedAt || null, loadedAt: new Date().toISOString() } });
   }
 
-  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter };
+  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter, conditions };
 })();
