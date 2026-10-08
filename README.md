@@ -61,7 +61,10 @@ Inspector), **Clocks** (the books' clocks or your own, each GM-only or shown to 
 **Campaign** (which modules and books are in play; save / restore the campaign as a pack). Any
 table the books roll on has a **Roll on this table** button in the Inspector.
 The sidebar shows the time at the table, the last roll and the room's idleness while a session
-runs, and **Prep** / **Running** presets set the three slots in one click; right-click a party card
+runs, and **Prep** / **Running** presets set the first three regions in one click; **Settings ▸
+Layout** arranges the wide page as three rows, three or four columns, or columns split into stacked
+regions, each region with its own picker, and a click into a region makes it where a nav choice
+opens; right-click a party card
 for its sheet in its own window; **Notes as text** (Campaign) and **Print** (Scene) take the GM's
 notes out. Everything you tick or type is saved in this browser as you go; **Undo** (Ctrl+Z, with Redo)
 takes back this window's own changes, on the GM page, the table and the player's page alike. The

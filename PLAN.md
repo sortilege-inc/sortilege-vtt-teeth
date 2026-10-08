@@ -257,6 +257,13 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**Layouts (2026-10-08):** decision 80. Proof on localhost at 1400 × 900: the page opened in
+`main wide ly-3col`; Settings listed Three rows · Three columns (on) · Four columns · Three columns,
+first split · Four columns, ends split; *Four columns, ends split* gave four columns and six
+regions (tracker, scene, settings, party, log, clocks) with the preference saved; a click into the
+second region selected it (focus 1, the outline on `data-region="1"`) and *Rules & Books* from the
+nav opened there; no console errors. Layout and slots put back.
+
 **The GM's map and the players' (2026-10-08):** decision 79. Proof on localhost, the GM's table
 and a player view (`?view=player`) on the same origin: both on the middle floor, the button read
 "Players are here" (disabled); the map list switched the GM to the lower floor and the players'
@@ -436,6 +443,7 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 77 | A pick-them-all ability list (pick n of n) counts as chosen for the buttons; a pick-some list shows its buttons once the picks are made | Found proving 72: Mr Laconicus Strong picks 2 of 3, so a fresh pregen showed no buttons until chosen — by design, said so. |
 | 78 | The table is told when Guts or Stress is used up (a box set to the limit, or a Push/Assist that reaches it) and when an injury is taken (the stepper, or an injury written into a box): action lines in the log, so they show in *At the table* and the GM's Dice log | Owner's ask. Only the crossing is told, not every spend. |
 | 79 | The GM switches maps without moving the players: a map switch no longer sets the shared `table.map` (only the first map shown does, when nothing is shared yet); *Bring players here* in the toolbar sets it, reads *Players are here* once they are, and its tooltip names the map the players are on | Owner's ask: look ahead at another map while the players stay. |
+| 80 | Settings ▸ Layout, ported from the Daggerheart VTT: five arrangements of the wide GM page (three rows; three or four columns; three columns with the first split; four with both ends split), each region with its own picker, a click into a region selecting where a nav choice opens, the choice per browser; the classic three columns keep TEETH's 22 / flex / 32 proportions; the Prep / Running presets fill the first three regions and leave the rest | Owner's ask (the "tile structure" setting Daggerheart has). Coyote & Crow, Daggerheart, D&D 5e, Marvel and Pendragon already carry it; Aegean, Invisible Sun, L5R5e, TOR2e, Troika and VtM5e do not. |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

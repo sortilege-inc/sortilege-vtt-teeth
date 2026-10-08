@@ -77,13 +77,25 @@ p { margin: 0 0 0.7rem; }
 
 /* ── slots ───────────────────────────────────────────────── */
 .main { min-width: 0; }
-.main.wide {
-  display: grid;
-  grid-template-columns: 22% 1fr 32%;
-  height: 100vh;
-}
-.slot { display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; border-right: 1px solid var(--rule); }
-.slot:last-child { border-right: 0; }
+/* wide mode: a row of columns (engine/app.js LAYOUTS); a column stacks one or more regions */
+.main.wide { display: flex; height: 100vh; }
+.slot-col { display: flex; flex-direction: column; flex: 1 1 0; min-width: 0; min-height: 0; border-right: 1px solid var(--rule); }
+.slot-col:last-child { border-right: 0; }
+.slot { display: flex; flex-direction: column; min-width: 0; min-height: 0; flex: 1 1 0; border-bottom: 1px solid var(--rule); }
+.slot:last-child { border-bottom: 0; }
+/* the classic three columns keep their 22 / flex / 32 proportions; the split-first variant matches */
+.main.ly-3col .slot-col:nth-child(1), .main.ly-3col-s1 .slot-col:nth-child(1) { flex: 0 0 22%; }
+.main.ly-3col .slot-col:nth-child(3), .main.ly-3col-s1 .slot-col:nth-child(3) { flex: 0 0 32%; }
+.slot--focus { box-shadow: inset 0 0 0 2px var(--blood-2); }
+.slot--focus > .slot-head > span:first-child { color: var(--blood); }
+.layout-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.layout-opt { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 86px; padding: 7px 6px; background: var(--paper); border: 1px solid var(--rule); color: var(--ink-2); cursor: pointer; font-family: var(--sc); font-size: 0.7rem; letter-spacing: 0.04em; }
+.layout-opt:hover { border-color: var(--blood-2); color: var(--ink); }
+.layout-opt.on { border-color: var(--blood); color: var(--ink); box-shadow: inset 0 0 0 1px var(--blood); }
+.layout-ico { width: 46px; height: 32px; display: block; }
+.layout-ico rect { fill: var(--ink-3); opacity: 0.6; }
+.layout-opt:hover .layout-ico rect, .layout-opt.on .layout-ico rect { fill: var(--blood); opacity: 0.9; }
+.layout-opt-label { text-align: center; line-height: 1.15; }
 .slot-head {
   display: flex;
   justify-content: space-between;
@@ -504,7 +516,7 @@ body.sheet-window .play-main { max-width: 900px; }
 @media print {
   body { display: block; background: #fff; }
   #sidebar, .slot:not(.slot-scene), .slot-head, .scene-nav, .gm-notes textarea::placeholder, .on-the-table { display: none !important; }
-  .main, .main.wide { display: block; }
+  .main, .main.wide, .slot-col { display: block; }
   .slot.slot-scene { display: block; height: auto; border: 0; }
   .slot-body { overflow: visible; padding: 0; }
   .gm-notes textarea { border: 0; font: inherit; }
