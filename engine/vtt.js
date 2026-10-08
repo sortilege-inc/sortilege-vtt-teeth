@@ -336,6 +336,7 @@
         'data-id': t.id,
         transform: `translate(${cx},${cy})`,
       });
+      g.appendChild(s('circle', { class: 'hit', r: r + Math.max(6, c * 0.12), fill: 'transparent', stroke: 'none' }));   // a grab a little wider than the ring
       g.appendChild(s('circle', { class: 'ring-outline', r: r + 3, fill: 'none', stroke: color, 'stroke-width': Math.max(2, c * 0.05) }));
       g.appendChild(s('circle', { class: 'body', r, stroke: color, 'stroke-width': 1.5 }));
       if (t.image) g.appendChild(s('image', { href: t.image, x: -r, y: -r, width: 2 * r, height: 2 * r, 'clip-path': 'circle(50%)' }));
@@ -451,8 +452,14 @@
     return map.grid.snap === false ? v : Math.round(v);
   }
 
+  let rightDrag = null;          // a right-button drag pans; a right click that did not move opens the menu
+  let rightDragMoved = false;
   svg.addEventListener('pointerdown', (e) => {
-    if (e.button === 2) return;
+    if (e.button === 2) {
+      rightDrag = { sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y, moved: false };
+      try { svg.setPointerCapture(e.pointerId); } catch (err) { /* a synthetic pointer */ }
+      return;
+    }
     closeMenu();
     const p = svgPoint(e.clientX, e.clientY);
     const t = tokenAt(e.target);
@@ -507,12 +514,23 @@
       svg.setPointerCapture(e.pointerId);
       return;
     }
+    if (PLAYER && !panning && e.pointerType !== 'touch') return;   // a player's left drag moves their token or nothing: the map pans by right drag, arrows, a finger
     drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: view.x, vy: view.y };
     svg.setPointerCapture(e.pointerId);
     svg.classList.add('panning');
   });
 
   svg.addEventListener('pointermove', (e) => {
+    if (rightDrag) {
+      if (!rightDrag.moved && Math.hypot(e.clientX - rightDrag.sx, e.clientY - rightDrag.sy) < 4) return;
+      rightDrag.moved = true;
+      closeMenu();
+      const scale = view.w / svg.clientWidth;
+      view.x = rightDrag.vx - (e.clientX - rightDrag.sx) * scale;
+      view.y = rightDrag.vy - (e.clientY - rightDrag.sy) * scale;
+      applyView();
+      return;
+    }
     if (!drag) return;
     if (drag.kind === 'pan') {
       const scale = view.w / svg.clientWidth;
@@ -570,7 +588,12 @@
     }
   });
 
-  svg.addEventListener('pointerup', () => {
+  svg.addEventListener('pointerup', (e) => {
+    if (rightDrag && e.button === 2) {
+      rightDragMoved = rightDrag.moved;
+      rightDrag = null;
+      return;
+    }
     if (!drag) return;
     svg.classList.remove('panning');
     if (drag.kind === 'token') {
@@ -650,6 +673,16 @@
   }
 
   window.addEventListener('keydown', (e) => {
+    if (/^Arrow(Up|Down|Left|Right)$/.test(e.key) && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement) && !(e.target instanceof HTMLSelectElement)) {
+      e.preventDefault();
+      const step = (e.key === 'ArrowLeft' || e.key === 'ArrowRight' ? view.w : view.h) * (e.shiftKey ? 0.5 : 0.1);
+      if (e.key === 'ArrowLeft') view.x -= step;
+      if (e.key === 'ArrowRight') view.x += step;
+      if (e.key === 'ArrowUp') view.y -= step;
+      if (e.key === 'ArrowDown') view.y += step;
+      applyView();
+      return;
+    }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !(e.target instanceof HTMLInputElement)) {
       e.preventDefault();
       if (e.shiftKey) State.redo(); else State.undo();
@@ -785,6 +818,10 @@
 
   svg.addEventListener('contextmenu', (e) => {
     e.preventDefault();
+    if (rightDragMoved || (rightDrag && rightDrag.moved)) {     // the right button was dragging the map, not asking for a menu
+      rightDragMoved = false;
+      return;
+    }
     if (PLAYER) return;
     closeMenu();
     const t = tokenAt(e.target);
@@ -1066,7 +1103,7 @@
     const n = map.tokens.length;
     const note = follow && followNote ? followNote + ' ' : '';
     if (PLAYER) {
-      hint.textContent = myMemberId() ? (myToken() ? 'Drag your own token · wheel zooms · drag the map to pan' : 'Place my token puts you on the map · wheel zooms · drag the map to pan') : 'Wheel zooms · drag the map to pan';
+      hint.textContent = (myMemberId() ? (myToken() ? 'Drag your own token · ' : 'Place my token puts you on the map · ') : '') + 'wheel zooms · right-drag or the arrow keys pan (a finger pans on touch)';
       return;
     }
     if (selectedEffect) {
@@ -1077,7 +1114,7 @@
     const shapes = map.effects.length ? ` · ${map.effects.length} shape${map.effects.length === 1 ? '' : 's'}: click one to select it` : '';
     const k = selectedIds.size;
     const selNote = k > 1 ? `${k} selected · drag one to move them all · ` : '';
-    hint.textContent = note + selNote + (n ? `${n} token${n === 1 ? '' : 's'} · click an NPC for its options (ring, face, name, size) · drag to move · drag a box to select · Space or middle button pans · selected: 1–4 size, H hide, Ctrl+D duplicate, Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
+    hint.textContent = note + selNote + (n ? `${n} token${n === 1 ? '' : 's'} · click a token for its options (ring, face, name, size) · drag to move · drag a box to select · right-drag, arrows, Space or the middle button pan · selected: 1–4 size, H hide, Ctrl+D duplicate, Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
   }
 
   // ── bus ────────────────────────────────────────────────────────────

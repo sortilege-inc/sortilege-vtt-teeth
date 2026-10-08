@@ -190,18 +190,22 @@
         button('Release character', () => Session.unclaim(m.id), 'ghost'),
       ]);
     // everyone's rolls and named actions, newest first — the GM's log as the room shares it
-    const feedItems = (State.state.log || []).slice(split ? -5 : -10).reverse();
+    const feedItems = (State.state.log || []).slice(split ? -30 : -10).reverse();
     const feed = el('section', { class: 'table-feed' }, [
       el('h4', {}, ['At the table', el('span', { class: 'muted' }, [feedItems.length ? '' : ' · nothing rolled yet'])]),
       el('div', { class: 'roll-log' }, feedItems.map((x) => x.kind === 'roll' && Sys.rollLine ? Sys.rollLine(x) : el('div', { class: 'roll-line' + (x.kind === 'roll' ? '' : ' action') }, [x.text || `${x.who || ''} · ${x.axis || ''} ${x.band || ''}`.trim()]))),
     ]);
     const clocks = (State.state.clocks || []).filter((c) => c.visible !== false);
     const strip = clocks.length ? el('div', { class: 'clock-strip' }, clocks.map((c) => el('div', { class: 'clock-row' }, [el('div', { class: 'track-head' }, [el('span', { class: 'track-name' }, [c.name]), el('span', { class: 'muted' }, [`${c.filled} / ${c.segments}`])]), el('div', { class: 'boxes clock' }, Array.from({ length: c.segments }, (_, i) => el('span', { class: 'box' + (i < c.filled ? ' on' : '') })))]))) : null;
-    // full page: the feed in its own column on the right; beside the map: folded under its heading
+    // full page: the feed in its own column on the right; beside the map: the sheet above, the
+    // rolls in a pane of their own below (the bottom third), each with its own scroll
     if (split) {
-      const fold = el('details', { class: 'feed-fold', open: feedOpen || null }, [el('summary', {}, ['At the table', el('span', { class: 'muted' }, [feedItems.length ? ` · ${feedItems.length}` : ' · nothing rolled yet'])]), feed]);
-      fold.addEventListener('toggle', () => { feedOpen = fold.open; try { sessionStorage.setItem(FEED_KEY, feedOpen ? '1' : '0'); } catch (e) { /* no storage */ } });
-      return el('div', { class: 'play-card wide compact' }, [bar, strip, Sys.liveSheet(m, { player: true, compact: true }), fold]);
+      const toggle = button(feedOpen ? 'hide' : 'show', () => { feedOpen = !feedOpen; try { sessionStorage.setItem(FEED_KEY, feedOpen ? '1' : '0'); } catch (e) { /* no storage */ } render(); }, 'ghost tiny');
+      const pane = el('section', { class: 'feed-pane' + (feedOpen ? '' : ' closed') }, [
+        el('div', { class: 'feed-pane-head' }, [el('h4', {}, ['At the table', el('span', { class: 'muted' }, [feedItems.length ? ` · ${feedItems.length}` : ' · nothing rolled yet'])]), toggle]),
+        feedOpen ? el('div', { class: 'feed-pane-body' }, [el('div', { class: 'roll-log' }, feedItems.map((x) => x.kind === 'roll' && Sys.rollLine ? Sys.rollLine(x) : el('div', { class: 'roll-line' + (x.kind === 'roll' ? '' : ' action') }, [x.text || `${x.who || ''} · ${x.axis || ''} ${x.band || ''}`.trim()])))]) : null,
+      ]);
+      return el('div', { class: 'play-card wide compact split-panes' }, [el('div', { class: 'sheet-pane' }, [bar, strip, Sys.liveSheet(m, { player: true, compact: true })]), pane]);
     }
     return el('div', { class: 'play-card wide with-feed' }, [el('div', { class: 'sheet-col' }, [bar, strip, Sys.liveSheet(m, { player: true })]), el('aside', { class: 'feed-col' }, [feed])]);
   }

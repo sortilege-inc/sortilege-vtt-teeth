@@ -337,9 +337,16 @@ body.play.mode-sheet .play-main { max-width: 1140px; }
 .play-card.with-feed { display: grid; grid-template-columns: minmax(0, 1fr) 300px; column-gap: 1.2rem; align-items: start; }
 .play-card.with-feed .feed-col { position: sticky; top: 0.6rem; max-height: calc(100vh - 1.2rem); overflow: auto; border-left: 1px solid var(--rule); padding-left: 1rem; }
 .play-card.with-feed .feed-col .table-feed { margin: 0; }
-.feed-fold { margin-top: 0.6rem; border-top: 1px solid var(--rule); padding-top: 0.3rem; }
-.feed-fold summary { font-family: var(--sc); letter-spacing: 0.05em; cursor: pointer; }
-.feed-fold .table-feed h4 { display: none; }
+/* beside the map: the sheet in the top two thirds, the rolls in the bottom third, each scrolling on its own */
+body.play.mode-split .play-main { padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.play-card.split-panes { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.play-card.split-panes .sheet-pane { flex: 2 1 0; min-height: 0; overflow: auto; padding: 0.6rem; }
+.play-card.split-panes .feed-pane { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; border-top: 2px solid var(--ink); background: var(--paper-2, var(--paper)); }
+.play-card.split-panes .feed-pane.closed { flex: 0 0 auto; }
+.feed-pane-head { display: flex; align-items: center; justify-content: space-between; padding: 0.3rem 0.6rem 0.2rem; }
+.feed-pane-head h4 { margin: 0; border: 0; }
+.feed-pane-body { flex: 1 1 0; min-height: 0; overflow: auto; padding: 0 0.6rem 0.6rem; }
+.injury-row .level-name { font-family: var(--sc); font-weight: 600; letter-spacing: 0.04em; }
 @media (max-width: 900px) {
   .play-card.with-feed { grid-template-columns: 1fr; }
   .play-card.with-feed .feed-col { position: static; max-height: none; border-left: 0; padding-left: 0; border-top: 1px solid var(--rule); padding-top: 0.4rem; }
@@ -353,6 +360,7 @@ body.play.mode-sheet .play-main { max-width: 1140px; }
   body.play.mode-split { grid-template-columns: 1fr; grid-template-rows: auto auto 45vh 1fr; }
   body.play.mode-split .play-table-wrap { grid-row: 3; grid-column: 1; }
   body.play.mode-split .play-main { grid-row: 4; grid-column: 1; border-right: 0; border-top: 1px solid var(--ink); }
+  .play-card.split-panes .sheet-pane { flex: 3 1 0; }
 }
 
 /* ── clocks and tables ──────────────────────────────────── */

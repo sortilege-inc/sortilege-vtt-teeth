@@ -222,7 +222,7 @@ export class SessionRoom extends DurableObject<Env> {
       case 'event': {
         const gmOnly = ['select', 'scene:changed'];
         if (att.role !== 'gm' && gmOnly.indexOf(msg.name) !== -1) return;
-        if (['roll', 'ping', 'select', 'scene:changed'].indexOf(msg.name) === -1) return;
+        if (['roll', 'ping', 'select', 'scene:changed', 'arm'].indexOf(msg.name) === -1) return;
         this.broadcast(() => ({ type: 'event', name: msg.name, payload: msg.payload }), ws);
         return;
       }

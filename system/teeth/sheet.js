@@ -227,6 +227,7 @@ window.TeethSheet = (function () {
   // What the next roll carries beyond the rating: dice from a push or the GM's bargain, effect
   // from a push or an assist. Per member, per window, cleared by the roll it goes on.
   const armed = {};
+  const mounted = {};            // memberId -> redraw of the live sheet last drawn for them on this page
   function armedFor(m) {
     return armed[m.id] || (armed[m.id] = { dice: 0, effect: 0, why: [], level: 2, injuryApplies: true });
   }
@@ -328,14 +329,32 @@ window.TeethSheet = (function () {
     const free = /no (?:Guts|Stress) cost/i.test(text);
     const dice = /\+(\d)D/i.exec(text);
     const eff = /\+(\d)E/i.exec(text);
-    return { cost: cost && !free ? { n: parseInt(cost[1], 10), res: cost[2] } : null, dice: dice ? parseInt(dice[1], 10) : 0, effect: eff ? parseInt(eff[1], 10) : (/Greater Effect/i.test(text) ? 1 : 0) };
+    const everyone = /(?:each|every|all) (?:other )?players?[’']?s?(?: next)? roll|each players’ next roll/i.test(text);
+    return { cost: cost && !free ? { n: parseInt(cost[1], 10), res: cost[2] } : null, dice: dice ? parseInt(dice[1], 10) : 0, effect: eff ? parseInt(eff[1], 10) : (/Greater Effect/i.test(text) ? 1 : 0), everyone };
   }
+  // arm a sheet's next roll from outside it (an ability for every player, from another device):
+  // the room relays the event; every page applies it to the members named and redraws their sheets
+  function armMembers(ids, dice, effect, why) {
+    const party = S().party || [];
+    const targets = ids === 'all' ? party : party.filter((m) => ids.indexOf(m.id) !== -1);
+    targets.forEach((m) => {
+      const a = armedFor(m);
+      a.dice += dice || 0;
+      a.effect += effect || 0;
+      if (why) a.why.push(why);
+      if (mounted[m.id]) mounted[m.id]();
+    });
+  }
+  Bus.on('arm', (p) => {
+    if (!p || !p.ids) return;
+    armMembers(p.ids, p.dice, p.effect, p.why);
+  });
   function chosenAbilities(m, sp) {
     const out = [];
     abilityLists(sp).forEach((l) => {
       const chosen = (m.live.lists || {})[l.name] || [];
       l.items.forEach((it) => {
-        if (!l.fixed && chosen.indexOf(it.hash) === -1) return;
+        if (!l.fixed && !(l.pick && l.pick >= l.items.length) && chosen.indexOf(it.hash) === -1) return;
         const e = D.entity(it.hash);
         if (!e) return;
         const text = abilityText(e);
@@ -356,7 +375,8 @@ window.TeethSheet = (function () {
   const COSTS = { push: 2, assist: 1 };
   // the book's own words on these, for the link beside the buttons: the core's Stress Sources,
   // a one-shot's Guts / Stress and Team Actions sections (the character's book first)
-  function ruleLink(m, names) {
+  function ruleLink(m, names, opts) {
+    if (opts && opts.player) return null;        // the player's page has no Inspector: the link would do nothing
     const t = D.entity(m.templateId);
     const bs = (t ? [t.book] : []).concat(books() || []);
     for (const bid of bs) {
@@ -413,18 +433,23 @@ window.TeethSheet = (function () {
     // the Effect the GM set for the action (the book's range), carried until changed
     const levelSel = el('select', { class: 'vtt-num effect-level', title: 'The Effect the GM set before the roll — +1E and injuries move along it' }, EFFECT_LEVELS.map((lv, i) => el('option', { value: String(i), selected: i === a.level || null }, [lv])));
     levelSel.addEventListener('change', () => { a.level = parseInt(levelSel.value, 10); redraw(); });
-    const effectRow = el('div', { class: 'chiprow' }, [el('span', { class: 'muted' }, ['Effect']), levelSel, ruleLink(m, ['Effect']), toggle('D'), toggle('E'), armedNote]);
+    const effectRow = el('div', { class: 'chiprow' }, [el('span', { class: 'muted' }, ['Effect']), levelSel, ruleLink(m, ['Effect'], opts), toggle('D'), toggle('E'), armedNote]);
     // injuries: each level's boxes with take / heal, for the GM and the player alike
     const worst = worstInjury(m);
     const injuryRows = injuryLevels(m).map((lv) => {
       const slots = injurySlots(m, lv);
       const pen = injuryPenalty(lv);
+      const whole = (D.propValue(lv, 'Description') || lv.desc || pen.text || '').trim();
+      const tip = pen.text && whole && pen.text !== whole ? `${pen.text} — ${whole}` : (whole || pen.text);
       const marks = el('span', { class: 'injury-marks' }, slots.map((s) => el('span', { class: 'mark' + (s.line ? ' on' : ''), title: s.line ? s.line.text : 'empty' })));
       const minus = button('−', () => { healInjury(m, lv); redraw(); }, 'ghost tiny');
       const plus = button('+', () => { takeInjury(m, lv); redraw(); }, 'ghost tiny');
+      minus.title = 'Heal one box';
+      plus.title = 'Take an injury at this level (a full level goes up a tier)';
       if (!slots.some((s) => s.line)) minus.disabled = true;
       if (slots.every((s) => s.line) && lv === injuryLevels(m)[injuryLevels(m).length - 1]) plus.disabled = true;
-      return el('div', { class: 'injury-row' + (worst === lv ? ' worst' : '') }, [E.link({ hash: lv.id, name: lv.name }), marks, minus, plus, el('span', { class: 'muted' }, [pen.text])]);
+      const short = pen.text && pen.text.length <= 24 ? pen.text : null;     // "Less Effect", "-1D" inline; a sentence stays in the tooltip
+      return el('div', { class: 'injury-row' + (worst === lv ? ' worst' : ''), title: tip }, [opts.player ? el('b', { class: 'level-name' }, [lv.name]) : E.link({ hash: lv.id, name: lv.name }), marks, minus, plus, short ? el('span', { class: 'muted' }, [short]) : null]);
     });
     const applies = el('label', { class: 'muted injury-applies' }, [el('input', { type: 'checkbox', checked: a.injuryApplies || null, onchange: (ev) => { a.injuryApplies = ev.target.checked; redraw(); } }), ' the injury applies to the next roll']);
     const injurySection = injuryRows.length ? el('div', { class: 'injuries' }, [el('div', { class: 'chiprow' }, [el('span', { class: 'muted' }, ['Injuries']), worst ? applies : null]), ...injuryRows]) : null;
@@ -434,20 +459,25 @@ window.TeethSheet = (function () {
       const terms = abilityTerms(ab.text);
       const b = button(ab.label, () => {
         if (terms.cost && terms.cost.res === res.name) spend(m, res, terms.cost.n);
-        if (terms.dice) a.dice += terms.dice;
-        if (terms.effect) a.effect += terms.effect;
-        if (terms.dice || terms.effect) a.why.push(ab.e.name);
-        logAction(m, `${m.name} uses ${ab.e.type === 'Sheet Ability' ? 'an ability' : ab.e.name}: ${ab.text}`);
+        if (terms.everyone && (terms.dice || terms.effect)) {
+          // every player's next roll: the bus applies it to this page's sheets and the room carries it to the other devices
+          Bus.emit('arm', { ids: 'all', dice: terms.dice, effect: terms.effect, why: ab.e.name, from: m.id });
+        } else {
+          if (terms.dice) a.dice += terms.dice;
+          if (terms.effect) a.effect += terms.effect;
+          if (terms.dice || terms.effect) a.why.push(ab.e.name);
+        }
+        logAction(m, `${m.name} uses ${ab.e.type === 'Sheet Ability' ? 'an ability' : ab.e.name}: ${ab.text}` + (terms.everyone && (terms.dice || terms.effect) ? ` — ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} on everyone's next roll` : ''));
         redraw();
       }, 'ghost tiny ability');
-      b.title = ab.text + (terms.cost ? ` — costs ${terms.cost.n} ${terms.cost.res}` : '') + (terms.dice || terms.effect ? ` — arms ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} for the next roll` : '');
+      b.title = ab.text + (terms.cost ? ` — costs ${terms.cost.n} ${terms.cost.res}` : '') + (terms.dice || terms.effect ? ` — arms ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} for ${terms.everyone ? 'every player\u2019s' : 'the'} next roll` : '');
       if (terms.cost && terms.cost.res === res.name && left < terms.cost.n) { b.disabled = true; b.title = `No ${res.name} left — ${left} of ${terms.cost.n} needed`; }
       return b;
     });
     const abilityRow = abilityBtns.length ? el('div', { class: 'chiprow abilities' }, [el('span', { class: 'muted' }, ['Abilities']), ...abilityBtns]) : null;
     return el('section', { class: 'actions-bar' }, [
-      el('h4', {}, ['Actions', el('span', { class: 'muted' }, [` · ${res.name} ${cur} / ${res.max}`]), ' ', ruleLink(m, ['Push themselves', 'Guts', 'Stress'])]),
-      el('div', { class: 'chiprow' }, [pushBtn('D'), pushBtn('E'), others.length ? who : null, assistBtn, ruleLink(m, ['Assist a teammate', 'Team Actions'])]),
+      el('h4', {}, ['Actions', el('span', { class: 'muted' }, [` · ${res.name} ${cur} / ${res.max}`]), ' ', ruleLink(m, ['Push themselves', 'Guts', 'Stress'], opts)]),
+      el('div', { class: 'chiprow' }, [pushBtn('D'), pushBtn('E'), others.length ? who : null, assistBtn, ruleLink(m, ['Assist a teammate', 'Team Actions'], opts)]),
       effectRow,
       abilityRow,
       injurySection,
@@ -689,6 +719,7 @@ window.TeethSheet = (function () {
       if (article.parentNode) article.parentNode.replaceChild(fresh, article);
       if (m.preview && m.preview.onChange) m.preview.onChange();
     };
+    if (!m.preview) mounted[m.id] = () => { if (article.isConnected) redraw(); };
     // compact (the player's page beside the table): what a roll needs — the actions bar, the
     // tracks and counters, the ratings, the last rolls — and nothing to read
     const body = el('div', { class: 'sheet-body' + (opts.compact ? ' compact' : '') }, [

@@ -257,6 +257,21 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**Everyone's next roll, panning, the two panes (2026-10-08):** decisions 72–77. Proof on
+localhost with the local Worker, a Hogmen campaign (room Q8G2P), Mr Laconicus Strong on the GM's
+page and Dr Nabeel Uddin claimed on 127.0.0.1: Strong's abilities 1 and 2 chosen; the couplet
+button (title "Using 2 Guts, Strong bellows an inspiring couplet: +1E on each players’ next roll")
+took Guts 0 → 2, logged "… — +1E on everyone's next roll", and both sheets on the GM's page read
+"next roll: +1E" (once each, after the double-count was fixed); Uddin's page read "next roll: +1E"
+and his roll carried effect 1, "Effect: Superb", why "Mr Laconicus Strong Ability 1", the note
+clear after it. Table, Uddin's own token placed at 13,11: a real left drag moved it to 16,8 on his
+map and the GM's with the viewBox unchanged; a left drag on empty map did not pan; ArrowRight
+panned (viewBox x 216); a right-button drag panned and the contextmenu event was prevented. The
+player's sheet has no "in the book"; the Level one row's tooltip reads "Less Effect — Minor injury,
+e.g. bloodied and bruised. (-1E)"; Map + sheet showed the sheet pane (469 px, scrolling) over the
+rolls pane (227 px, scrolling, 2 lines), *hide* collapsed it to a header. Worker redeployed for the
+`arm` event. Test members, tokens, log, module and session reverted.
+
 **Sheet mechanics, the reset, the feed column (2026-10-08):** decisions 64–71. Proof on localhost
 with the local Worker. Sheet (Miss Maria Morsock, Blood Cotillion, through `TeethSheet.live`): the
 actions bar read Effect · Poor / Limited / Reasonable / Superb, three ability buttons, three injury
@@ -398,6 +413,12 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 69 | A behaviour at the limit (Hysteria, Aberrant Behaviour, Erratic Behaviour) and a mortal injury stand in a blood-red bar across the top of the sheet, in the book's words — GM's panel, player's page, compact sheet alike | Owner's ask. The header chips stay; the bar is what is seen first. |
 | 70 | *Reset to the beginning of the scenario* in the Campaign panel: scenes undone, clues unrevealed, the current scene cleared, clocks emptied, the log cleared, every map's tokens, shapes and fog reveals gone, every sheet back to before play (tracks, counters, injuries, behaviours reset; ratings, abilities, items and other choices kept) and every claim released — one op (`setKeys`, GM only, the previous values as its inverse), one undo | Owner's ask, incl. "reset all the character sheets to unclaimed and no changes made". Choices made at creation are not play, so they stay; the Worker was redeployed for the op. |
 | 71 | The player's full-page sheet keeps *At the table* in a column on the right (sticky, its own scroll); beside the map it folds under its heading, remembered per tab | Owner's ask. |
+| 72 | An ability "for each player's next roll" arms every sheet: the press emits an `arm` event (ids, dice, effect, why) that the bus applies to this page's sheets and the room carries to every other device (`arm` joined the relayed events in session.js and the Worker); each page redraws the live sheets it has mounted | Owner's ask. The modifiers live per window, so the event is the only way across devices; the originating page applies it once (through its own bus listener, not directly as well — that double-counted at first). |
+| 73 | The map pans by right-drag, the arrow keys (Shift for half a screen), Space, the middle button or the Pan tool; a player's left drag moves their own token or nothing (a finger still pans on touch); a right click that did not move still opens the GM's menu; every token has a hit circle a little wider than its ring | Owner's report: a left drag on their token panned the map; with the left button free of panning a missed grab does nothing instead of moving the view. |
+| 74 | "in the book" links are off the player's sheet (no Inspector there to open them in); the GM's keep them | Owner's ask. |
+| 75 | An injury level's row carries its penalty and the book's description as a tooltip; the short penalty ("Less Effect", "-1D") stays inline, a sentence lives in the tooltip; the + and − say what they do | Owner's ask. |
+| 76 | Beside the map the player's sidebar is two panes: the sheet above (two thirds), *At the table* below (one third, the last 30 lines), each with its own scroll, the rolls pane hideable | Owner's ask: no scrolling up and down between the sheet and the rolls. Replaces the fold of decision 71. |
+| 77 | A pick-them-all ability list (pick n of n) counts as chosen for the buttons; a pick-some list shows its buttons once the picks are made | Found proving 72: Mr Laconicus Strong picks 2 of 3, so a fresh pregen showed no buttons until chosen — by design, said so. |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

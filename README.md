@@ -70,8 +70,8 @@ Scene panel's **On the table** puts the scene's figures and the party on its map
 **Open table** puts the current scene's map in its own window (`gm/vtt.html`): grid calibration,
 tokens for the party and the cast (add them from the toolbar; drag to move; click an NPC for its
 options — ring colour, one of a dozen generic faces, name below or on hover, size in squares — or
-hide, rename, remove, and a party token's *Open sheet*; drag a box to select several and move them together; Space, the middle
-button or the Pan tool pans), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
+hide, rename, remove, and a party token's *Open sheet*; drag a box to select several and move them together; right-drag, the
+arrow keys, Space, the middle button or the Pan tool pan), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
 right-click to label it; Clear takes them all), fog with reveal rectangles; the grid can be
 square or **iso** (a diamond lattice with an adjustable ratio, on by default for the isometric
 maps), the campaign's clocks sit over the map, a **Ruler** measures in cells, a fog **Brush** paints
@@ -102,12 +102,13 @@ and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their o
 **Actions** bar (Push +1D / +1E and Assist at the book's cost in Guts or Stress, logged; free
 +1D / +1E toggles for the next roll; the Effect the GM set, from the book's Poor—Limited—Reasonable—Superb,
 so the roll line names the Effect reached; the chosen special abilities as buttons that spend, arm
-and log what their text says; each injury level's boxes with − and +, the worst one's penalty on the
+and log what their text says — one for "each player's next roll" arms every sheet at the table; each injury level's boxes with − and +, the worst one's penalty on the
 roll), a blood-red bar across the top once a behaviour at the limit or a mortal injury is set, and
-*At the table*, everyone's rolls, in a column on the right (folded beside the map); a banner with *Retry now* appears if the connection drops; they
+*At the table*, everyone's rolls, in a column on the right (beside the map, a pane of its own under
+the sheet); a banner with *Retry now* appears if the connection drops; they
 can switch the page to the map, or to the map with a compact sheet beside it (and back to the
 full sheet), place their own token on the map and move it (the map and everyone else's tokens
-stay the GM's), and **Download my character** saves
+stay the GM's; the map pans by right-drag, the arrow keys or a finger), and **Download my character** saves
 the character as played right now — the same file the join screen takes back next time. Everything they do shows up live
 on the GM's page and table; everything the GM does to their character shows up live on theirs.
 They never receive GM notes, hidden tokens or unrevealed fog; they may not change what the
