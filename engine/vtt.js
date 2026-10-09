@@ -345,7 +345,9 @@
       // (one per segment, red when filled); a string pip is a filled one with that title
       const pips = (status && status.pips ? status.pips : []).map((p) => (typeof p === 'string' ? { title: p, on: true } : p));
       if (t.clock && t.clock.segments > 0) {
-        for (let i = 0; i < t.clock.segments; i++) pips.push({ title: `Harm ${t.clock.filled || 0} / ${t.clock.segments}`, on: i < (t.clock.filled || 0), clock: true });
+        // the players see the harm marked, not how much there is to take: filled pips only, no count
+        const shown = PLAYER ? (t.clock.filled || 0) : t.clock.segments;
+        for (let i = 0; i < shown; i++) pips.push({ title: PLAYER ? 'Harm' : `Harm ${t.clock.filled || 0} / ${t.clock.segments}`, on: i < (t.clock.filled || 0), clock: true });
         if ((t.clock.filled || 0) >= t.clock.segments) g.classList.add('down');
       }
       const n = Math.min(pips.length, 12);
