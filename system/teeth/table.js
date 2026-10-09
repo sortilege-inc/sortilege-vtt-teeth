@@ -341,8 +341,10 @@ window.VttSystem = (function () {
       const pen = TS.injuryPenalty(worst);
       for (let i = 0; i < lvl; i++) pips.push(`${worst.name}${pen.text ? ' · ' + pen.text : ''}`);
     }
-    const text = conds.filter((c) => !/^Injured:/.test(c)).join(' · ');
-    return { text, pips, cls: conds.length ? 'afflicted' : '' };
+    // the rest on hover, not in the label; a behaviour at the limit (Hysteria, Aberrant, Erratic) as a spiky ring
+    const rest = conds.filter((c) => !/^Injured:/.test(c));
+    const spiky = rest.some((c) => /^(Hysteria|Aberrant Behaviour|Erratic Behaviour):/.test(c));
+    return { text: '', pips, cls: (conds.length ? 'afflicted' : '') + (spiky ? ' hysteric' : ''), title: conds.join('\n') || null, spiky };
   }
 
   function selectToken(t) {

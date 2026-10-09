@@ -337,6 +337,18 @@
         transform: `translate(${cx},${cy})`,
       });
       g.appendChild(s('circle', { class: 'hit', r: r + Math.max(6, c * 0.12), fill: 'transparent', stroke: 'none' }));   // a grab a little wider than the ring
+      // a spiky ring outside the ring: the system's mark for a condition that shows (hysteria, say)
+      if (status && status.spiky) {
+        const pts = [];
+        const n = 18;
+        for (let i = 0; i < n * 2; i++) {
+          const a = (i * Math.PI) / n;
+          const rr = i % 2 ? r + 5 : r + 5 + Math.max(5, c * 0.11);
+          pts.push(`${(Math.cos(a) * rr).toFixed(1)},${(Math.sin(a) * rr).toFixed(1)}`);
+        }
+        g.appendChild(s('polygon', { class: 'spikes', points: pts.join(' ') }));
+      }
+      if (status && status.title) g.appendChild(s('title', {}, [status.title]));   // the conditions, on hover
       g.appendChild(s('circle', { class: 'ring-outline', r: r + 3, fill: 'none', stroke: color, 'stroke-width': Math.max(2, c * 0.05) }));
       g.appendChild(s('circle', { class: 'body', r, stroke: color, 'stroke-width': 1.5 }));
       if (t.image) g.appendChild(s('image', { href: t.image, x: -r, y: -r, width: 2 * r, height: 2 * r, 'clip-path': 'circle(50%)' }));

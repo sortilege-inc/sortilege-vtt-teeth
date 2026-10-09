@@ -257,6 +257,12 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**Conditions on hover, the spiky ring (2026-10-09):** decision 93. Proof on localhost, GM table:
+Miss Maria Morsock with Aberrant Behaviour: Unwarranted Aggression and Stress at 8 / 8 wore a
+label of her name alone, the class `afflicted hysteric`, a 36-point yellow `spikes` polygon outside
+her ring, and the hover title "Aberrant Behaviour: Unwarranted Aggression / Stress used up".
+Reverted.
+
 **Harm hidden from players (2026-10-09):** decision 92. Proof on localhost: a Hogman with a
 5-segment clock at 2 wore 5 pips (2 lit, "Harm 2 / 5") on the GM's table and 2 pips, both lit,
 titled "Harm", in the player view. Reverted.
@@ -511,6 +517,7 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 90 | The Assist list offers the claimed characters while a session runs (everyone else in the party when none does) | Owner's ask. |
 | 91 | An ability can be named: a name box beside each ability on the full sheet (`live.abilityNames[id]`, the character's own, in the pack and the file); the actions bar's button wears the name, the whole text on hover, and the log line says "uses Firebrand: …"; unnamed, a one-shot's Sheet Ability shows a cut of its text, a Special Ability its own name | Owner's ask. |
 | 92 | An NPC's harm clock shows players only the harm marked: the filled pips, titled "Harm", none of the empty ones and no count; the GM sees every segment and "Harm 2 / 5" | Owner's ask (2026-10-09): players should not see how much harm there is to take. |
+| 93 | A party token's label is its name alone; its conditions (a behaviour at the limit, a used-up resource, the injury) are on hover; a behaviour at the limit — Hysteria, Aberrant or Erratic Behaviour — draws a spiky yellow ring outside the ring (`status.spiky`, an engine mark any system may raise) | Owner's ask (2026-10-09). |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

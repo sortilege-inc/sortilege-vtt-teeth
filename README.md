@@ -74,7 +74,8 @@ Scene panel's **On the table** puts the scene's figures and the party on its map
 tokens for the party and the cast (add them from the toolbar; drag to move; click an NPC for its
 options — ring colour, one of a dozen generic faces, name below or on hover, size in squares — or
 hide, rename, remove, a party token's *Open sheet*, an NPC's *Harm* clock of so many segments (players see only the harm marked); a
-party token's injury shows as red pips over its ring; drag a box to select several and move them
+party token's injury shows as red pips over its ring, a behaviour at the limit as a spiky yellow ring,
+the rest of its conditions on hover; drag a box to select several and move them
 together; *Copy* and *Paste* (Ctrl+C / Ctrl+V) carry tokens from one map to another; right-drag, the
 arrow keys, Space, the middle button or the Pan tool pan), pings, circle / line / square shapes (click one to select it, then Remove or Delete;
 right-click to label it; Clear takes them all), fog with reveal rectangles; the grid can be
