@@ -257,6 +257,15 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**Calls as buttons, claimed only (2026-10-09):** decision 85. Proof on localhost, room JS7WA:
+with no session the panel read "Start a session; calls go to the characters players have claimed",
+with the session and no claim "No one has claimed a character yet — a call goes to a claimed
+sheet"; once the player on 127.0.0.1 claimed Miss Maria Morsock the card appeared with no selects
+and three rows "Position: Controlled Risky* Desperate / Effect: Poor Limited Reasonable* Superb /
+Roll: Brawn* Wit Sleight Will"; *Desperate* marked itself, *Call* pushed Desperate · Reasonable ·
+Brawn, *Superb* on the live call changed the state at once and the player's block read "Desperate |
+Superb | Brawn | Roll Brawn (0)"; the Risky button's tooltip is the book's sentence. Reverted.
+
 **The injury flag (2026-10-09):** decision 84. Proof on localhost through `TeethSheet.live` for
 Miss Maria Morsock: no checkbox and no flag with no injury; one Level one box filled — flag off,
 box unticked; the second box filled the level — flag on, box ticked; a roll carried "Level one" and
@@ -471,6 +480,7 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 82 | The roll line reads what happened first — the band and the book's words — and only then the terms: "Desperate · Effect Superb", or on a 1-3 "Effect Superb · not reached" | Owner's report: Effect led and read as if it would happen on a failure. |
 | 83 | Party tokens no longer print their tracks; the token's status is its conditions (Hysteria, an injury, a resource used up). A party token's options menu carries a *Sheet* section: every track and counter with − and +, every injury level with its boxes and − and +, the menu staying open as they change (`Sys.tokenMenu`, the table page now loads the sheet module) | Owner's ask: no Guts/Silver on the tokens; set them from the token's menu. |
 | 84 | "The injury applies to the next roll" is off by default, ticks itself only when an injury level fills (its last box, from the stepper, the token's menu or a box written in), is spent by the one roll it applies to (unticked after it), and can be ticked by hand for another; the flag lives on the sheet (`live.flags.injuryArmed`), so the GM's window and the player's agree, and the reset clears it | Owner's ask (2026-10-09). Shared rather than per window: the GM fills the level from the table, the player rolls from their phone. |
+| 85 | The Calls panel lists only the characters players have claimed (a call goes to someone at the table; without a session, or with no claim yet, it says so and redraws as claims change) and offers each choice as a row of buttons — Position in ink, Effect in blood, the Action in party green — rather than drop-downs; a pick on a live call goes to the sheet at once | Owner's ask (2026-10-09). |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

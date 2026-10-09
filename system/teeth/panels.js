@@ -612,8 +612,12 @@
     const draw = () => {
       container.innerHTML = '';
       container.appendChild(el('h4', {}, ['Calls', el('span', { class: 'muted' }, [' · Position, Effect and the Action, pushed to a sheet'])]));
-      const party = S().party || [];
-      if (!party.length) return container.appendChild(el('div', { class: 'empty' }, ['No one in the party yet.']));
+      // only the characters a player has claimed: a call goes to someone at the table
+      const Session = window.VttSession;
+      const s = Session ? Session.current() : null;
+      const claims = s && s.active ? s.claims : {};
+      const party = (S().party || []).filter((m) => claims[m.id]);
+      if (!party.length) return container.appendChild(el('div', { class: 'empty' }, [s && s.active ? 'No one has claimed a character yet — a call goes to a claimed sheet.' : 'Start a session; calls go to the characters players have claimed.']));
       const calls = S().calls || {};
       party.forEach((m) => {
         const t = D.entity(m.templateId);
@@ -621,32 +625,33 @@
         const axes = sp ? sp.ratings.reduce((a, r) => a.concat(r.axes), []) : [];
         const live = calls[m.id] || null;
         const st = staged[m.id] || (staged[m.id] = { position: 'Risky', effect: 'Reasonable', axis: axes[0] || '', note: '' });
-        const cur = live || st;
-        const sel = (cls, options, value, title) => el('select', { class: 'vtt-num ' + cls, title }, options.map((o) => el('option', { value: o, selected: o === value || null }, [o])));
-        const posSel = sel('call-pos', TS.positions(), cur.position, 'Position');
-        const effSel = sel('call-eff', TS.EFFECT_LEVELS, cur.effect, 'Effect');
-        const axisSel = sel('call-axis', axes, cur.axis, 'The Action or Attribute rolled');
+        const cur = Object.assign({}, st, live || {});
         const note = el('input', { type: 'text', class: 'text call-note', placeholder: 'what for (optional)', value: cur.note || '' });
-        const read = () => ({ position: posSel.value, effect: effSel.value, axis: axisSel.value, note: note.value.trim(), at: Date.now() });
+        const read = () => ({ position: cur.position, effect: cur.effect, axis: cur.axis, note: note.value.trim(), at: Date.now() });
         const push = () => State.commit('setCall', [m.id, read()]);
-        // a live call follows every change at once; a staged one waits for Call
-        [posSel, effSel, axisSel].forEach((s) => s.addEventListener('change', () => { if (live) push(); else Object.assign(st, read()); }));
-        note.addEventListener('change', () => { if (live) push(); else st.note = note.value.trim(); });
+        // three rows of choices; a live call follows every pick at once, a staged one waits for Call
+        const choose = (key, value) => { cur[key] = value; st[key] = value; if (live) push(); else draw(); };
+        const rowOf = (label, key, options, cls, tip) => el('div', { class: 'call-row' }, [
+          el('span', { class: 'call-row-k' }, [label]),
+          el('div', { class: 'call-opts ' + cls }, options.map((o) => el('button', { class: 'call-opt' + (o === cur[key] ? ' on' : ''), type: 'button', title: tip ? tip(o) : o, onclick: () => choose(key, o) }, [o]))),
+        ]);
         const callBtn = button(live ? 'Update' : 'Call', push, live ? 'ghost tiny' : 'tiny');
         const clearBtn = live ? button('Withdraw', () => State.commit('clearCall', [m.id]), 'ghost tiny') : null;
+        note.addEventListener('change', () => { st.note = note.value.trim(); if (live) push(); });
         const last = (S().log || []).slice().reverse().find((x) => x.kind === 'roll' && x.memberId === m.id && x.called);
-        const posText = TS.positionText(cur.position, m);
         container.appendChild(el('div', { class: 'paper call-card' + (live ? ' live' : '') }, [
-          el('div', { class: 'call-who' }, [el('b', {}, [m.name]), live ? el('span', { class: 'chip on' }, ['called · waiting for the roll']) : el('span', { class: 'muted' }, [' · no call'])]),
-          el('div', { class: 'chiprow' }, [posSel, effSel, axisSel, callBtn, clearBtn]),
-          el('div', { class: 'chiprow' }, [note]),
-          posText ? el('div', { class: 'muted small' }, [posText]) : null,
+          el('div', { class: 'call-who' }, [el('b', {}, [m.name]), live ? el('span', { class: 'chip on' }, ['called · waiting for the roll']) : el('span', { class: 'chip' }, ['claimed'])]),
+          rowOf('Position', 'position', TS.positions(), 'positions', (o) => TS.positionText(o, m)),
+          rowOf('Effect', 'effect', TS.EFFECT_LEVELS, 'effects', null),
+          rowOf('Roll', 'axis', axes, 'axes', null),
+          el('div', { class: 'chiprow' }, [note, callBtn, clearBtn]),
           last ? el('div', { class: 'call-last' }, [el('span', { class: 'muted' }, ['Last answered: ']), TS.rollLine(last)]) : null,
         ]));
       });
     };
     ctx.on('state:changed', draw);
     ctx.on('state:remote', draw);
+    if (window.VttSession) window.VttSession.onChange(() => { if (container.isConnected) draw(); });   // claims come and go
     draw();
   }
 

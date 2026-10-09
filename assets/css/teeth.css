@@ -483,7 +483,17 @@ a.card { text-decoration: none; display: block; }
 .call-card { padding: 0.5rem 0.7rem; margin: 0.4rem 0; }
 .call-card.live { border-color: var(--blood); }
 .call-card .call-who { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
-.call-card .call-note { width: 100%; max-width: 24rem; }
+.call-card .call-note { flex: 1 1 12rem; max-width: 24rem; }
+.call-row { display: flex; align-items: center; gap: 0.5rem; margin: 0.3rem 0; flex-wrap: wrap; }
+.call-row-k { font-family: var(--sc); letter-spacing: 0.06em; font-size: 0.78rem; color: var(--ink-3); min-width: 4.2rem; }
+.call-opts { display: inline-flex; border: 1px solid var(--ink); background: var(--paper); }
+.call-opt { font-family: var(--sc); letter-spacing: 0.05em; font-size: 0.85rem; padding: 0.25rem 0.7rem; background: transparent; border: 0; border-right: 1px solid var(--rule); color: var(--ink-2); cursor: pointer; }
+.call-opt:last-child { border-right: 0; }
+.call-opt:hover { background: var(--paper-2); color: var(--ink); }
+.call-opt.on { color: #fff; }
+.call-opts.positions .call-opt.on { background: var(--ink); }
+.call-opts.effects .call-opt.on { background: var(--blood); }
+.call-opts.axes .call-opt.on { background: #4f6b3a; }
 .call-card .call-last { margin-top: 0.3rem; font-size: 0.9rem; }
 .token-sheet { border-top: 1px dotted var(--rule); margin-top: 0.4rem; padding-top: 0.3rem; }
 .token-sheet .token-sheet-head { font-family: var(--sc); letter-spacing: 0.06em; font-size: 0.75rem; }
