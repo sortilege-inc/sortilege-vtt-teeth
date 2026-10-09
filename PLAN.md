@@ -257,6 +257,22 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**Calls, the roll line, the token's sheet (2026-10-09):** decisions 81–83. Proof on localhost with
+the local Worker, Blood Cotillion, Miss Maria Morsock, room SPZ6E, the player claimed on
+127.0.0.1: the Calls panel offered Controlled · Risky · Desperate, Poor · Limited · Reasonable ·
+Superb and Brawn · Wit · Sleight · Will; *Call* with the note "shove the butler" put the call in
+the state (Risky · Reasonable · Brawn), the card went live with *Update · Withdraw*; the player's
+sheet showed "The GM calls · shove the butler | Risky | Reasonable | Brawn | Roll Brawn (0)" with
+the Risky description on hover; the GM changed the selects to Desperate and Superb and the player's
+block read "Desperate | Superb | Brawn" with no click; *Roll Brawn (0)* logged position Desperate,
+called, effectBase Superb, band 1-3, the line "… 1-3 You fail and there are bad consequences.
+Sorry. | Desperate · Effect Superb · not reached", the call cleared on both sides and the panel's
+card read "Last answered:" with that line. Table: her party token's label was her name alone;
+a click opened the menu with a Sheet section "Stress 1 / 8 − + / Suspicion 0 / 6 − + / Level one −
++ Less Effect / Level two − + -1D / Level three − +"; *+* on Stress made it 2 / 8 with the menu
+open; *+* on Level one filled a box and the token read "Miss Maria Morsock · Injured: Level one ·
+Less Effect". Worker redeployed (7efb5c37). Test member, token, log, calls, session reverted.
+
 **Layouts (2026-10-08):** decision 80. Proof on localhost at 1400 × 900: the page opened in
 `main wide ly-3col`; Settings listed Three rows · Three columns (on) · Four columns · Three columns,
 first split · Four columns, ends split; *Four columns, ends split* gave four columns and six
@@ -444,6 +460,9 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 78 | The table is told when Guts or Stress is used up (a box set to the limit, or a Push/Assist that reaches it) and when an injury is taken (the stepper, or an injury written into a box): action lines in the log, so they show in *At the table* and the GM's Dice log | Owner's ask. Only the crossing is told, not every spend. |
 | 79 | The GM switches maps without moving the players: a map switch no longer sets the shared `table.map` (only the first map shown does, when nothing is shared yet); *Bring players here* in the toolbar sets it, reads *Players are here* once they are, and its tooltip names the map the players are on | Owner's ask: look ahead at another map while the players stay. |
 | 80 | Settings ▸ Layout, ported from the Daggerheart VTT: five arrangements of the wide GM page (three rows; three or four columns; three columns with the first split; four with both ends split), each region with its own picker, a click into a region selecting where a nav choice opens, the choice per browser; the classic three columns keep TEETH's 22 / flex / 32 proportions; the Prep / Running presets fill the first three regions and leave the rest | Owner's ask (the "tile structure" setting Daggerheart has). Coyote & Crow, Daggerheart, D&D 5e, Marvel and Pendragon already carry it; Aegean, Invisible Sun, L5R5e, TOR2e, Troika and VtM5e do not. |
+| 81 | A *Calls* panel: the GM sets Position (the book's Controlled · Risky · Desperate), Effect (Poor—Limited—Reasonable—Superb) and the Action or Attribute for a member's next roll, with a note, and *Call* pushes it (`setCall`, shared `calls`); the sheet shows *The GM calls* with the terms (the Position's description on hover) and one Roll button for that Action; while the call stands every change the GM makes goes to the sheet at once, *Withdraw* takes it back; the roll takes the call's Effect as its base, carries the Position, and clears the call (`clearCall`, the player's own); the panel shows the roll that answered | Owner's ask: "GM sets Risky, Reasonable, Brawn … they discuss … the GM makes the changes … the player sees the updated roll, and then makes the roll." |
+| 82 | The roll line reads what happened first — the band and the book's words — and only then the terms: "Desperate · Effect Superb", or on a 1-3 "Effect Superb · not reached" | Owner's report: Effect led and read as if it would happen on a failure. |
+| 83 | Party tokens no longer print their tracks; the token's status is its conditions (Hysteria, an injury, a resource used up). A party token's options menu carries a *Sheet* section: every track and counter with − and +, every injury level with its boxes and − and +, the menu staying open as they change (`Sys.tokenMenu`, the table page now loads the sheet module) | Owner's ask: no Guts/Silver on the tokens; set them from the token's menu. |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

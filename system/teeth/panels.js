@@ -604,12 +604,59 @@
     draw();
   }
 
+  // ── Calls: the GM sets Position · Effect · Action for a member's next roll, pushes it to their
+  // sheet, adjusts it while the table talks, and sees the roll that answered it ──
+  function renderCalls(container, ctx) {
+    const TS = window.TeethSheet;
+    const staged = {};        // memberId -> the terms picked but not yet called
+    const draw = () => {
+      container.innerHTML = '';
+      container.appendChild(el('h4', {}, ['Calls', el('span', { class: 'muted' }, [' · Position, Effect and the Action, pushed to a sheet'])]));
+      const party = S().party || [];
+      if (!party.length) return container.appendChild(el('div', { class: 'empty' }, ['No one in the party yet.']));
+      const calls = S().calls || {};
+      party.forEach((m) => {
+        const t = D.entity(m.templateId);
+        const sp = t ? TS.spec(t) : null;
+        const axes = sp ? sp.ratings.reduce((a, r) => a.concat(r.axes), []) : [];
+        const live = calls[m.id] || null;
+        const st = staged[m.id] || (staged[m.id] = { position: 'Risky', effect: 'Reasonable', axis: axes[0] || '', note: '' });
+        const cur = live || st;
+        const sel = (cls, options, value, title) => el('select', { class: 'vtt-num ' + cls, title }, options.map((o) => el('option', { value: o, selected: o === value || null }, [o])));
+        const posSel = sel('call-pos', TS.positions(), cur.position, 'Position');
+        const effSel = sel('call-eff', TS.EFFECT_LEVELS, cur.effect, 'Effect');
+        const axisSel = sel('call-axis', axes, cur.axis, 'The Action or Attribute rolled');
+        const note = el('input', { type: 'text', class: 'text call-note', placeholder: 'what for (optional)', value: cur.note || '' });
+        const read = () => ({ position: posSel.value, effect: effSel.value, axis: axisSel.value, note: note.value.trim(), at: Date.now() });
+        const push = () => State.commit('setCall', [m.id, read()]);
+        // a live call follows every change at once; a staged one waits for Call
+        [posSel, effSel, axisSel].forEach((s) => s.addEventListener('change', () => { if (live) push(); else Object.assign(st, read()); }));
+        note.addEventListener('change', () => { if (live) push(); else st.note = note.value.trim(); });
+        const callBtn = button(live ? 'Update' : 'Call', push, live ? 'ghost tiny' : 'tiny');
+        const clearBtn = live ? button('Withdraw', () => State.commit('clearCall', [m.id]), 'ghost tiny') : null;
+        const last = (S().log || []).slice().reverse().find((x) => x.kind === 'roll' && x.memberId === m.id && x.called);
+        const posText = TS.positionText(cur.position, m);
+        container.appendChild(el('div', { class: 'paper call-card' + (live ? ' live' : '') }, [
+          el('div', { class: 'call-who' }, [el('b', {}, [m.name]), live ? el('span', { class: 'chip on' }, ['called · waiting for the roll']) : el('span', { class: 'muted' }, [' · no call'])]),
+          el('div', { class: 'chiprow' }, [posSel, effSel, axisSel, callBtn, clearBtn]),
+          el('div', { class: 'chiprow' }, [note]),
+          posText ? el('div', { class: 'muted small' }, [posText]) : null,
+          last ? el('div', { class: 'call-last' }, [el('span', { class: 'muted' }, ['Last answered: ']), TS.rollLine(last)]) : null,
+        ]));
+      });
+    };
+    ctx.on('state:changed', draw);
+    ctx.on('state:remote', draw);
+    draw();
+  }
+
   Panels.register('tracker', { label: 'Module', render: renderTracker });
   Panels.register('scene', { label: 'Scene', render: renderScene });
   Panels.register('inspector', { label: 'Inspector', render: renderInspector });
   Panels.register('party', { label: 'Party', render: renderParty });
   Panels.register('clocks', { label: 'Clocks', render: renderClocks });
   Panels.register('log', { label: 'Dice log', render: renderLog });
+  Panels.register('calls', { label: 'Calls', render: renderCalls });
   Panels.register('cast', { label: 'Cast', render: renderCast });
   Panels.register('rules', { label: 'Rules & Books', render: renderRules });
   Panels.register('lore', { label: 'Lore', render: renderLore });

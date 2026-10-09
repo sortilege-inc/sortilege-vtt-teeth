@@ -330,10 +330,9 @@ window.VttSystem = (function () {
     if (t.kind !== 'party') return null;
     const m = (S().party || []).find((x) => x.id === t.owner);
     if (!m) return null;
-    const tracks = m.live.tracks || {};
+    // the token wears the conditions (Hysteria, an injury, a resource used up), not the tracks' numbers
     const conds = window.TeethSheet && window.TeethSheet.conditions ? window.TeethSheet.conditions(m) : [];
-    const text = Object.keys(tracks).map((k) => `${k} ${tracks[k]}`).concat(conds).join(' · ');
-    return { text, pips: [], cls: conds.length ? 'afflicted' : '' };
+    return { text: conds.join(' · '), pips: [], cls: conds.length ? 'afflicted' : '' };
   }
 
   function selectToken(t) {
@@ -341,8 +340,39 @@ window.VttSystem = (function () {
     else if (t.kind === 'cast' && t.ref) window.VttBus.emit('select', { kind: 'entity', id: t.ref });
   }
 
+  // a party token's menu: the sheet's tracks (Guts, Stress, Silver…) and injuries, each with − and +
   function tokenMenu(t, done) {
-    return null;
+    if (t.kind !== 'party' || !window.TeethSheet) return null;
+    const TS = window.TeethSheet;
+    const m = (S().party || []).find((x) => x.id === t.owner);
+    const tpl = m ? D.entity(m.templateId) : null;
+    if (!m || !tpl) return null;
+    const sp = TS.spec(tpl);
+    const { el, button } = window.VttRender;
+    const rows = [];
+    sp.tracks.forEach((tr) => {
+      const v = (m.live.tracks || {})[tr.name] || 0;
+      const minus = button('−', () => { TS.setTrack(m, tr, v - 1); done(); }, 'ghost tiny');
+      const plus = button('+', () => { TS.setTrack(m, tr, v + 1); done(); }, 'ghost tiny');
+      minus.disabled = v <= (tr.min || 0);
+      plus.disabled = v >= tr.max;
+      rows.push(el('div', { class: 'row token-track' }, [el('span', { class: 'muted' }, [tr.name]), el('b', {}, [`${v} / ${tr.max}`]), minus, plus]));
+    });
+    sp.counters.forEach((c) => {
+      const v = (m.live.counters || {})[c.name] || 0;
+      const set = (n) => { State.commit('setPartyLive', [m.id, { counters: Object.assign({}, m.live.counters || {}, { [c.name]: Math.max(c.min || 0, n) }) }]); done(); };
+      rows.push(el('div', { class: 'row token-track' }, [el('span', { class: 'muted' }, [c.name]), el('b', {}, [String(v)]), button('−', () => set(v - 1), 'ghost tiny'), button('+', () => set(v + 1), 'ghost tiny')]));
+    });
+    TS.injuryLevels(m).forEach((lv) => {
+      const slots = TS.injurySlots(m, lv);
+      const pen = TS.injuryPenalty(lv);
+      const marks = el('span', { class: 'injury-marks' }, slots.map((s) => el('span', { class: 'mark' + (s.line ? ' on' : ''), title: s.line ? s.line.text : 'empty' })));
+      const minus = button('−', () => { TS.healInjury(m, lv); done(); }, 'ghost tiny');
+      const plus = button('+', () => { TS.takeInjury(m, lv); done(); }, 'ghost tiny');
+      minus.disabled = !slots.some((s) => s.line);
+      rows.push(el('div', { class: 'row token-track', title: pen.text }, [el('span', { class: 'muted' }, [lv.name]), marks, minus, plus, el('span', { class: 'muted small' }, [pen.text.length <= 24 ? pen.text : ''])]));
+    });
+    return rows.length ? el('div', { class: 'token-sheet' }, [el('div', { class: 'muted token-sheet-head' }, ['Sheet']), ...rows]) : null;
   }
 
   // the player's page

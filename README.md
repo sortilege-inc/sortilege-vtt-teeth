@@ -90,6 +90,13 @@ players' map is set on purpose: the GM may switch to another floor to look ahead
 stay where they are, and **Bring players here** moves them to the map the GM is looking at. Map images live in `assets/maps/`;
 `system/teeth/table.js` says which scene ships with which maps and where each legend comes from.
 
+**Calls** is where the GM sets Position, Effect and the Action for a character's next roll and
+pushes it to their sheet: the player sees *The GM calls* with the terms and one Roll button; every
+adjustment the GM makes reaches the sheet at once; the roll takes the call's Effect, carries the
+Position, and answers the call. The roll line says what happened first, then the terms. A party
+token's menu carries the sheet's tracks and injuries with − and +; tokens show conditions, not
+numbers.
+
 **Reset to the beginning of the scenario** (Campaign panel) undoes every scene and clue, empties
 the clocks, clears the log, strips every map's tokens, shapes and fog reveals, puts every sheet back
 to before play (tracks, counters, injuries and behaviours; ratings, abilities and other choices

@@ -916,7 +916,7 @@
     const rename = targets.length === 1 ? el('button', { class: 'btn ghost', onclick: () => { const n = prompt('Label', t.label); if (n) { t.label = n; persist(); renderTokens(); } closeMenu(); } }, ['Rename']) : null;
     const remove = el('button', { class: 'btn danger', onclick: () => { removeTokens(targets.map((x) => x.id)); closeMenu(); } }, [targets.length > 1 ? `Remove ${targets.length} tokens` : 'Remove token']);
     const body = el('div', { class: 'vtt-menu token-menu' }, [el('h4', {}, [title]), ringRow, iconRow, labelRow, sizeRow, el('div', { class: 'row' }, [openSheet, hide, rename, remove])]);
-    const extra = Sys.tokenMenu(t, () => { persist(); renderTokens(); closeMenu(); });
+    const extra = Sys.tokenMenu(t, () => { renderTokens(); refreshMenu(); });   // the system's rows keep the menu open and fresh
     if (extra) body.appendChild(extra);
     return body;
   }

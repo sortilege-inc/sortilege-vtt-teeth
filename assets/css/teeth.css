@@ -473,7 +473,22 @@ a.card { text-decoration: none; display: block; }
 .sheet-alert { background: var(--blood); color: #fff; padding: 0.45rem 0.8rem; margin: 0 0 0.6rem; border: 1px solid var(--ink); font-family: var(--serif); }
 .sheet-alert .alert-row { padding: 0.1rem 0; }
 .sheet-alert b { font-family: var(--sc); letter-spacing: 0.05em; text-transform: uppercase; }
-.roll-effect, .roll-injury { font-size: 0.85rem; color: var(--ink-2); margin-left: 0.4rem; }
+.roll-effect, .roll-injury, .roll-terms { font-size: 0.85rem; color: var(--ink-2); margin-left: 0.4rem; }
+.roll-outcome .roll-text { font-style: italic; }
+.gm-call { border: 2px solid var(--blood); background: var(--paper); padding: 0.45rem 0.7rem; margin: 0 0 0.6rem; }
+.gm-call .call-head b { font-family: var(--sc); letter-spacing: 0.06em; color: var(--blood); }
+.gm-call .call-terms { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem; }
+.gm-call .term { font-family: var(--sc); letter-spacing: 0.05em; padding: 0.1rem 0.5rem; border: 1px solid var(--ink); background: var(--paper-2); }
+.gm-call .btn.call-roll { background: var(--blood); color: #fff; border-color: var(--blood); }
+.call-card { padding: 0.5rem 0.7rem; margin: 0.4rem 0; }
+.call-card.live { border-color: var(--blood); }
+.call-card .call-who { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.3rem; }
+.call-card .call-note { width: 100%; max-width: 24rem; }
+.call-card .call-last { margin-top: 0.3rem; font-size: 0.9rem; }
+.token-sheet { border-top: 1px dotted var(--rule); margin-top: 0.4rem; padding-top: 0.3rem; }
+.token-sheet .token-sheet-head { font-family: var(--sc); letter-spacing: 0.06em; font-size: 0.75rem; }
+.token-sheet .row > .muted:first-child { min-width: 5rem; }
+.token-sheet .btn.tiny { margin-left: 0; min-width: 1.6rem; }
 .roll-injury { color: var(--blood); }
 .effect-level { width: auto; }
 .actions-bar .abilities .btn.ability { white-space: normal; text-align: left; max-width: 100%; }

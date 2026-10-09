@@ -234,6 +234,20 @@ window.TeethSheet = (function () {
   // The book's range of Effect: "Poor—Limited—Reasonable—Superb". The GM sets it before the roll;
   // the sheet carries the level set (Reasonable until changed), +1E / -1E move along it.
   const EFFECT_LEVELS = ['Poor', 'Limited', 'Reasonable', 'Superb'];
+  // the book's Positions (the campaign's books' Position entities; the core's names failing that)
+  const POSITIONS = ['Controlled', 'Risky', 'Desperate'];
+  function positions() {
+    return POSITIONS.slice();
+  }
+  function positionText(name, m) {
+    const t = m ? D.entity(m.templateId) : null;
+    const bs = (t ? [t.book] : []).concat(books() || []);
+    const e = D.byType('Position', bs).find((x) => x.name === name);
+    return e ? (D.propValue(e, 'Description') || e.desc || '') : '';
+  }
+  function callFor(m) {
+    return ((S().calls || {})[m.id]) || null;
+  }
 
   // ── injuries: the book's levels, the boxes filled, the penalty the worst one carries ──
   function injuryLevels(m) {
@@ -292,7 +306,7 @@ window.TeethSheet = (function () {
     patch(m, 'texts', { Injuries: lines.filter((x) => !(typeof x === 'object' && x.slot === key)) });
   }
 
-  function doRoll(m, axis, rating, extra) {
+  function doRoll(m, axis, rating, extra, call) {
     const r = rollEntity();
     const a = armedFor(m);
     const worst = a.injuryApplies ? worstInjury(m) : null;
@@ -300,11 +314,14 @@ window.TeethSheet = (function () {
     const bonus = (extra || 0) + a.dice + (pen ? pen.dice : 0);
     const pool = rollPool(rating + bonus);
     const res = ladder(pool.kept, r);
-    const level = Math.max(0, Math.min(EFFECT_LEVELS.length - 1, a.level + a.effect + (pen ? pen.effect : 0)));
+    // the Effect: the GM's call when there is one, else the level the sheet carries
+    const baseLevel = call && EFFECT_LEVELS.indexOf(call.effect) !== -1 ? EFFECT_LEVELS.indexOf(call.effect) : a.level;
+    const level = Math.max(0, Math.min(EFFECT_LEVELS.length - 1, baseLevel + a.effect + (pen ? pen.effect : 0)));
     const entry = {
       at: new Date().toISOString(), kind: 'roll', memberId: m.id, who: m.name, axis, rating: rating + bonus,
       base: rating, extra: bonus, effect: a.effect, why: a.why.slice(),
-      effectBase: EFFECT_LEVELS[a.level], effectLevel: EFFECT_LEVELS[level],
+      position: call ? call.position : null, called: !!call,
+      effectBase: EFFECT_LEVELS[baseLevel], effectLevel: EFFECT_LEVELS[level],
       injury: worst ? { name: worst.name, penalty: pen.text, dice: pen.dice, effect: pen.effect } : null,
       dice: pool.dice, zero: pool.zero, band: res.band, text: res.text,
     };
@@ -313,6 +330,7 @@ window.TeethSheet = (function () {
     a.why = [];
     if (m.preview) return entry;
     State.commit('appendLog', [entry]);
+    if (call) State.commit('clearCall', [m.id]);     // the call is answered
     Bus.emit('roll', entry);
     return entry;
   }
@@ -483,7 +501,24 @@ window.TeethSheet = (function () {
       return b;
     });
     const abilityRow = abilityBtns.length ? el('div', { class: 'chiprow abilities' }, [el('span', { class: 'muted' }, ['Abilities']), ...abilityBtns]) : null;
+    // the GM's call, when one stands: Position · Effect · Action, and the roll that answers it
+    const call = callFor(m);
+    let callBlock = null;
+    if (call) {
+      const rating = (() => { for (const r of sp.ratings) { const cur = (m.live.ratings || {})[r.name] || {}; if (r.axes.indexOf(call.axis) !== -1) return cur[call.axis] || 0; } return 0; })();
+      const rollBtn = button(`Roll ${call.axis} (${rating})`, () => { const entry = doRoll(m, call.axis, rating, 0, call); if (!m.preview) { const rl = document.querySelector('.rolls .roll-log'); if (rl) rl.prepend(rollLine(entry)); } redraw(); }, 'roll call-roll');
+      callBlock = el('div', { class: 'gm-call' }, [
+        el('div', { class: 'call-head' }, [el('b', {}, ['The GM calls']), el('span', { class: 'muted' }, [call.note ? ` · ${call.note}` : ''])]),
+        el('div', { class: 'call-terms' }, [
+          el('span', { class: 'term', title: positionText(call.position, m) }, [call.position]),
+          el('span', { class: 'term', title: 'The Effect the GM set' }, [call.effect]),
+          el('span', { class: 'term' }, [call.axis]),
+          rollBtn,
+        ]),
+      ]);
+    }
     return el('section', { class: 'actions-bar' }, [
+      callBlock,
       el('h4', {}, ['Actions', el('span', { class: 'muted' }, [` · ${res.name} ${cur} / ${res.max}`]), ' ', ruleLink(m, ['Push themselves', 'Guts', 'Stress'], opts)]),
       el('div', { class: 'chiprow' }, [pushBtn('D'), pushBtn('E'), others.length ? who : null, assistBtn, ruleLink(m, ['Assist a teammate', 'Team Actions'], opts)]),
       effectRow,
@@ -694,10 +729,14 @@ window.TeethSheet = (function () {
     return el('div', { class: 'roll-line band-' + entry.band.replace(/[^a-z0-9]/gi, '').toLowerCase() }, [
       el('span', { class: 'roll-who' }, [entry.who + ' · ' + entry.axis + ' ' + (entry.extra ? `${entry.base} ${entry.extra > 0 ? '+' : ''}${entry.extra}D` : entry.rating) + (entry.effect ? ` +${entry.effect}E` : '')]),
       el('span', { class: 'roll-dice' }, entry.dice.map((d) => el('span', { class: 'die' + (entry.zero && d !== Math.min.apply(null, entry.dice) ? ' dropped' : '') }, [String(d)]))),
-      el('b', {}, [entry.band]),
-      entry.effectLevel ? el('span', { class: 'roll-effect' }, ['Effect: ', el('b', {}, [entry.effectLevel]), entry.effectLevel !== entry.effectBase ? ` (${entry.effectBase}${entry.effect ? ' +' + entry.effect + 'E' : ''}${entry.injury && entry.injury.effect ? ' ' + entry.injury.effect + 'E injured' : ''})` : '']) : null,
+      // what happened first — the band and the book's words for it — then what it was worth
+      el('span', { class: 'roll-outcome' }, [el('b', {}, [entry.band]), entry.text ? el('span', { class: 'roll-text' }, [' ' + entry.text]) : null]),
+      entry.effectLevel || entry.position ? el('span', { class: 'roll-terms muted' }, [
+        entry.position ? `${entry.position} · ` : '',
+        entry.band === '1-3' ? `Effect ${entry.effectLevel} · not reached` : `Effect ${entry.effectLevel}`,
+        entry.effectLevel !== entry.effectBase ? ` (${entry.effectBase}${entry.effect ? ' +' + entry.effect + 'E' : ''}${entry.injury && entry.injury.effect ? ' ' + entry.injury.effect + 'E injured' : ''})` : '',
+      ]) : null,
       entry.injury ? el('span', { class: 'roll-injury' }, [`${entry.injury.name}: ${entry.injury.penalty}`]) : null,
-      entry.text ? el('span', { class: 'roll-text' }, [entry.text]) : null,
     ]);
   }
 
@@ -808,5 +847,5 @@ window.TeethSheet = (function () {
     return Object.assign({}, m, { id: State.genId('pc'), notes: '', preview: undefined, source: { kind: 'file', name: fileName || null, exportedAt: obj.exportedAt || null, loadedAt: new Date().toISOString() } });
   }
 
-  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter, conditions, resetLive, worstInjury, injuryPenalty };
+  return { spec, declared, newMember, member, live, render, doRoll, rollLine, rollEntity, standalone, scope, exportCharacter, downloadCharacter, readCharacter, conditions, resetLive, worstInjury, injuryPenalty, injuryLevels, injurySlots, takeInjury, healInjury, setTrack, positions, positionText, EFFECT_LEVELS };
 })();
