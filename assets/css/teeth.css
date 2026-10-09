@@ -505,6 +505,8 @@ a.card { text-decoration: none; display: block; }
 .roll-injury { color: var(--blood); }
 .effect-level { width: auto; }
 .actions-bar .abilities .btn.ability { white-space: normal; text-align: left; max-width: 100%; }
+.actions-bar .abilities .btn.ability.named { font-family: var(--sc); letter-spacing: 0.04em; }
+.check-body .ability-name { display: block; width: 100%; max-width: 20rem; margin: 0 0 0.2rem; font-size: 0.85rem; padding: 0.1rem 0.4rem; }
 .actions-bar .injuries { margin-top: 0.3rem; }
 .injury-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; padding: 0.1rem 0; flex-wrap: wrap; }
 .injury-row.worst { color: var(--blood); }

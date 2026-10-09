@@ -257,6 +257,16 @@ Delete removed both, Ctrl+Z brought both back; a middle-button drag panned the v
 on empty map selected nothing; a click on a party token raised `select` for its sheet and no menu.
 Test tokens reverted.
 
+**Clocks once, claimed assists, named abilities (2026-10-09):** decisions 89–91. Proof on localhost
+with the local Worker (room K8HZY, Miss Maria Morsock claimed on 127.0.0.1, Miss Harriet Crumb
+unclaimed, a clock at 1 / 4): the player's full page showed the clock strip and the Assist button
+disabled with an empty list (no one else claimed); the GM's sheet for Crumb offered "Miss Maria
+Morsock" alone; three name boxes stood beside Morsock's abilities, "Firebrand" typed into the
+first made the actions bar read "Firebrand · Having smeared herself in thick… · For the duration
+of one argument,…" with the fire text on hover, stored as `abilityNames`, and the GM's page showed
+the same; Map + sheet had no clock strip in the sheet pane and one Clocks overlay on the map.
+Reverted.
+
 **Injury pips, harm clocks, copy and paste (2026-10-09):** decisions 86–88. Proof on localhost,
 GM table: Miss Maria Morsock with a Level two injury wore 2 pips titled "Level two · -1D" and a
 label of her name alone; Mr Bagbury's menu gained "Harm · segments · − +"; 4 segments gave 4 pips
@@ -493,6 +503,9 @@ in play needs show locked in the Campaign panel. Test member removed, campaign r
 | 86 | A party token's injury is red pips over the top of its ring — one per level, so Level two is two — with the level and penalty on hover; the label no longer says "Injured:" (Hysteria and a used-up resource still read in the label) | Owner's ask (2026-10-09). |
 | 87 | An NPC token can carry a harm clock: the options menu's *Harm* row sets the segments (0 for none) and fills or empties them one at a time; the segments are pips over the ring, red when filled, and a full clock marks the token *down* (a red ring, the face dimmed) — `token.clock = { segments, filled }`, plain token data | Owner's ask: "an HP clock of an arbitrary number of dots that works like injury level". |
 | 88 | Tokens copy and paste across maps: *Copy* (Ctrl+C) takes the selection into this window's clipboard, *Paste* (Ctrl+V) puts copies on whatever map is showing, around the centre of the view with their spacing kept and new ids, and selects them; the toolbar buttons count what they hold; a map switch closes an open token menu | Owner's ask: select, copy, change map, paste. |
+| 89 | Beside the map the sidebar no longer carries the clock strip — the table's Clocks overlay shows them on the map; the full-page sheet keeps the strip (no map there) | Owner's report (2026-10-09): clocks twice in Map + sheet. |
+| 90 | The Assist list offers the claimed characters while a session runs (everyone else in the party when none does) | Owner's ask. |
+| 91 | An ability can be named: a name box beside each ability on the full sheet (`live.abilityNames[id]`, the character's own, in the pack and the file); the actions bar's button wears the name, the whole text on hover, and the log line says "uses Firebrand: …"; unnamed, a one-shot's Sheet Ability shows a cut of its text, a Special Ability its own name | Owner's ask. |
 | 60 | A player places and moves their own token: `placeToken(mapId, token)` is a new op a player may send for a party token they own (the map must be in the state — the GM's table put it there — and one token per member per map); the table in player view offers *Place my token* when theirs is not on the map, drops it at the centre of their view, and reads the seat from the session record in storage, since the table's window (its own tab, or the player page's frame) holds no socket | Owner's report: players could not place or move their own token — `canDrag` asked a `VttSession` the table page never loads, so it was always "no". Moving was already the player's op; placing was not. The map and everyone else's tokens stay the GM's. |
 | 23 | Cross-window sync carries the change, not a hint: `state:changed` now travels with the op (or the whole document) and sibling windows apply it in memory instead of re-reading localStorage | Found while proving 21: a BroadcastChannel message reached the GM page before the table's localStorage write was visible there; the stale re-read was then saved back over the table's map. Applying the op is deterministic and needs no read. |
 | 13 | The player's page (`engine/play.js`) is generic; the system supplies `liveSheet(member, {player})` and `memberSubtitle(member)` through `VttSystem` | The join → claim → sheet flow is the same for every system. |

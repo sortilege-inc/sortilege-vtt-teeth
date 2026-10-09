@@ -381,6 +381,15 @@ window.TeethSheet = (function () {
     if (!p || !p.ids) return;
     armMembers(p.ids, p.dice, p.effect, p.why);
   });
+  // what an ability is called on the sheet: the name its player gave it (live.abilityNames), else the
+  // entity's name — a one-shot's Sheet Ability carries only the converter's label, so a cut of its text
+  function abilityName(m, e) {
+    const given = ((m.live.abilityNames || {})[e.id] || '').trim();
+    if (given) return given;
+    if (e.type !== 'Sheet Ability') return e.name;
+    const text = abilityText(e);
+    return text.length > 40 ? text.slice(0, 38).replace(/\s+\S*$/, '') + '…' : (text || e.name);
+  }
   function chosenAbilities(m, sp) {
     const out = [];
     abilityLists(sp).forEach((l) => {
@@ -390,8 +399,7 @@ window.TeethSheet = (function () {
         const e = D.entity(it.hash);
         if (!e) return;
         const text = abilityText(e);
-        const label = e.type === 'Sheet Ability' ? (text.length > 56 ? text.slice(0, 54).replace(/\s+\S*$/, '') + '…' : text) : e.name;
-        out.push({ e, text, label: label || e.name });
+        out.push({ e, text, label: abilityName(m, e) });
       });
     });
     return out;
@@ -453,7 +461,10 @@ window.TeethSheet = (function () {
       if (why) { b.disabled = true; b.title = why; }
       return b;
     };
-    const others = (S().party || []).filter((x) => x.id !== m.id);
+    // whom one may assist: the others at the table — the claimed characters while a session runs
+    const sess = window.VttSession ? window.VttSession.current() : null;
+    const claims = sess && sess.active ? sess.claims : null;
+    const others = (S().party || []).filter((x) => x.id !== m.id && (!claims || claims[x.id]));
     const who = el('select', { class: 'vtt-num assist-who' }, others.map((o) => el('option', { value: o.id }, [o.name])));
     const assistBtn = button(`Assist (${COSTS.assist} ${res.name})`, () => {
       const o = others.find((x) => x.id === who.value);
@@ -506,10 +517,11 @@ window.TeethSheet = (function () {
           if (terms.effect) a.effect += terms.effect;
           if (terms.dice || terms.effect) a.why.push(ab.e.name);
         }
-        logAction(m, `${m.name} uses ${ab.e.type === 'Sheet Ability' ? 'an ability' : ab.e.name}: ${ab.text}` + (terms.everyone && (terms.dice || terms.effect) ? ` — ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} on everyone's next roll` : ''));
+        logAction(m, `${m.name} uses ${ab.label}: ${ab.text}` + (terms.everyone && (terms.dice || terms.effect) ? ` — ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} on everyone's next roll` : ''));
         redraw();
       }, 'ghost tiny ability');
-      b.title = ab.text + (terms.cost ? ` — costs ${terms.cost.n} ${terms.cost.res}` : '') + (terms.dice || terms.effect ? ` — arms ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} for ${terms.everyone ? 'every player\u2019s' : 'the'} next roll` : '');
+      b.title = ab.text + (terms.cost ? `\n— costs ${terms.cost.n} ${terms.cost.res}` : '') + (terms.dice || terms.effect ? `\n— arms ${terms.dice ? '+' + terms.dice + 'D ' : ''}${terms.effect ? '+' + terms.effect + 'E' : ''} for ${terms.everyone ? 'every player\u2019s' : 'the'} next roll` : '');
+      b.classList.add('named');
       if (terms.cost && terms.cost.res === res.name && left < terms.cost.n) { b.disabled = true; b.title = `No ${res.name} left — ${left} of ${terms.cost.n} needed`; }
       return b;
     });
@@ -671,6 +683,7 @@ window.TeethSheet = (function () {
   function listRows(m, l) {
     const chosen = (m.live.lists || {})[l.name] || [];
     const limit = l.pick;
+    const isAbility = /Abilit/i.test(l.type || '') || /Abilit/i.test(l.name);
     return el('section', {}, [
       el('h4', {}, [l.name, limit ? el('span', { class: 'muted' }, [` · pick ${limit} (${chosen.length} chosen)`]) : null]),
       el('div', { class: 'checklist' }, l.items.map((it) => {
@@ -684,6 +697,8 @@ window.TeethSheet = (function () {
             patch(m, 'lists', { [l.name]: next });
           } }),
           el('span', { class: 'check-body' }, [
+            // an ability: a name box (the player's own word for it; the button on the actions bar wears it), the text under it
+            isAbility && e ? el('input', { type: 'text', class: 'text ability-name', value: ((m.live.abilityNames || {})[e.id] || ''), placeholder: abilityName(m, e), title: 'Name this ability — the button on the actions bar shows it, the text on hover', onclick: (ev) => ev.preventDefault(), onchange: (ev) => patch(m, 'abilityNames', { [e.id]: ev.target.value.trim() }) }) : null,
             // a Sheet Ability's name is the converter's label (the one-shots' sheets print no titles): show its text as the item
             e && e.type === 'Sheet Ability' && typeof text === 'string' ? E.link({ hash: e.id, name: e.name }, text)
               : e ? E.link({ hash: e.id, name: e.name }) : el('b', {}, [it.name]),

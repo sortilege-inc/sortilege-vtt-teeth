@@ -115,7 +115,8 @@ and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their o
 **Actions** bar (Push +1D / +1E and Assist at the book's cost in Guts or Stress, logged; free
 +1D / +1E toggles for the next roll; the Effect the GM set, from the book's Poor—Limited—Reasonable—Superb,
 so the roll line names the Effect reached; the chosen special abilities as buttons that spend, arm
-and log what their text says — one for "each player's next roll" arms every sheet at the table; each injury level's boxes with − and +, the worst one's penalty on the
+and log what their text says — named by the player on the full sheet, the text on hover; one for
+"each player's next roll" arms every sheet at the table; Assist lists the claimed characters; each injury level's boxes with − and +, the worst one's penalty on the
 roll when *the injury applies to the next roll* is ticked — it ticks itself when a level fills, one
 roll spends it, and it can be ticked by hand; an injury taken, or Guts or Stress used up, is told to
 the table), a blood-red bar across the top once a behaviour at the limit or a mortal injury is set, and

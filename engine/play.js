@@ -205,7 +205,7 @@
         el('div', { class: 'feed-pane-head' }, [el('h4', {}, ['At the table', el('span', { class: 'muted' }, [feedItems.length ? ` · ${feedItems.length}` : ' · nothing rolled yet'])]), toggle]),
         feedOpen ? el('div', { class: 'feed-pane-body' }, [el('div', { class: 'roll-log' }, feedItems.map((x) => x.kind === 'roll' && Sys.rollLine ? Sys.rollLine(x) : el('div', { class: 'roll-line' + (x.kind === 'roll' ? '' : ' action') }, [x.text || `${x.who || ''} · ${x.axis || ''} ${x.band || ''}`.trim()])))]) : null,
       ]);
-      return el('div', { class: 'play-card wide compact split-panes' }, [el('div', { class: 'sheet-pane' }, [bar, strip, Sys.liveSheet(m, { player: true, compact: true })]), pane]);
+      return el('div', { class: 'play-card wide compact split-panes' }, [el('div', { class: 'sheet-pane' }, [bar, Sys.liveSheet(m, { player: true, compact: true })]), pane]);   // the clocks are on the map beside it
     }
     return el('div', { class: 'play-card wide with-feed' }, [el('div', { class: 'sheet-col' }, [bar, strip, Sys.liveSheet(m, { player: true })]), el('aside', { class: 'feed-col' }, [feed])]);
   }
