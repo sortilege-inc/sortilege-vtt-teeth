@@ -229,7 +229,7 @@ window.TeethSheet = (function () {
   const armed = {};
   const mounted = {};            // memberId -> redraw of the live sheet last drawn for them on this page
   function armedFor(m) {
-    return armed[m.id] || (armed[m.id] = { dice: 0, effect: 0, why: [], level: 2, injuryApplies: true });
+    return armed[m.id] || (armed[m.id] = { dice: 0, effect: 0, why: [], level: 2 });
   }
   // The book's range of Effect: "Poor—Limited—Reasonable—Superb". The GM sets it before the roll;
   // the sheet carries the level set (Reasonable until changed), +1E / -1E move along it.
@@ -276,6 +276,15 @@ window.TeethSheet = (function () {
     if (/-1E|less effect/i.test(both)) return { text, dice: 0, effect: -1 };
     return { text: pen && sentence ? sentence : (desc || pen), dice: 0, effect: 0 };
   }
+  // "the injury applies to the next roll": set itself when an injury level fills, spent by the roll it
+  // applies to, and otherwise the player's (or GM's) to tick by hand. Kept on the sheet, so every
+  // window sees the same answer.
+  function injuryArmed(m) {
+    return !!((m.live.flags || {}).injuryArmed);
+  }
+  function armInjury(m, on) {
+    patch(m, 'flags', { injuryArmed: !!on });
+  }
   function worstInjury(m) {
     let worst = null;
     injuryLevels(m).forEach((lv) => {
@@ -291,8 +300,10 @@ window.TeethSheet = (function () {
       const slot = injurySlots(m, levels[at]).find((s) => !s.line);
       if (slot) {
         const lines = (m.live.texts || {}).Injuries || [];
-        patch(m, 'texts', { Injuries: lines.concat([{ slot: slot.key, text: 'injury' }]) });
+        const next = lines.concat([{ slot: slot.key, text: 'injury' }]);
+        patch(m, 'texts', { Injuries: next });
         logAction(m, `${m.name} takes a ${levels[at].name} injury — ${injuryPenalty(levels[at]).text}`);
+        if (injurySlots(m, levels[at]).every((s) => next.some((x) => typeof x === 'object' && x.slot === s.key && x.text))) armInjury(m, true);   // the level filled: it applies to the next roll
         return;
       }
       at += 1;
@@ -309,7 +320,8 @@ window.TeethSheet = (function () {
   function doRoll(m, axis, rating, extra, call) {
     const r = rollEntity();
     const a = armedFor(m);
-    const worst = a.injuryApplies ? worstInjury(m) : null;
+    const applies = injuryArmed(m);
+    const worst = applies ? worstInjury(m) : null;
     const pen = worst ? injuryPenalty(worst) : null;
     const bonus = (extra || 0) + a.dice + (pen ? pen.dice : 0);
     const pool = rollPool(rating + bonus);
@@ -330,6 +342,7 @@ window.TeethSheet = (function () {
     a.why = [];
     if (m.preview) return entry;
     State.commit('appendLog', [entry]);
+    if (applies) armInjury(m, false);                 // it applied once; tick it again by hand if it still does
     if (call) State.commit('clearCall', [m.id]);     // the call is answered
     Bus.emit('roll', entry);
     return entry;
@@ -477,7 +490,7 @@ window.TeethSheet = (function () {
       const short = pen.text && pen.text.length <= 24 ? pen.text : null;     // "Less Effect", "-1D" inline; a sentence stays in the tooltip
       return el('div', { class: 'injury-row' + (worst === lv ? ' worst' : ''), title: tip }, [opts.player ? el('b', { class: 'level-name' }, [lv.name]) : E.link({ hash: lv.id, name: lv.name }), marks, minus, plus, short ? el('span', { class: 'muted' }, [short]) : null]);
     });
-    const applies = el('label', { class: 'muted injury-applies' }, [el('input', { type: 'checkbox', checked: a.injuryApplies || null, onchange: (ev) => { a.injuryApplies = ev.target.checked; redraw(); } }), ' the injury applies to the next roll']);
+    const applies = el('label', { class: 'muted injury-applies', title: 'Ticks itself when an injury level fills; one roll spends it; tick it by hand for another' }, [el('input', { type: 'checkbox', checked: injuryArmed(m) || null, onchange: (ev) => armInjury(m, ev.target.checked) }), ' the injury applies to the next roll']);
     const injurySection = injuryRows.length ? el('div', { class: 'injuries' }, [el('div', { class: 'chiprow' }, [el('span', { class: 'muted' }, ['Injuries']), worst ? applies : null]), ...injuryRows]) : null;
     // the abilities chosen, as buttons
     const abilities = chosenAbilities(m, sp);
@@ -562,6 +575,7 @@ window.TeethSheet = (function () {
     });
     live.picks = Object.assign({}, live.picks || {});
     BEHAVIOUR_PICKS.forEach((name) => delete live.picks[name]);
+    live.flags = {};
     return live;
   }
 
@@ -716,7 +730,11 @@ window.TeethSheet = (function () {
               return el('input', { type: 'text', class: 'text injury', placeholder: '—', value: cur ? cur.text : '', onchange: (ev) => {
                 const rest = lines.filter((x) => !(typeof x === 'object' && x.slot === key));
                 patch(m, 'texts', { [tx.name]: ev.target.value ? rest.concat([{ slot: key, text: ev.target.value }]) : rest });
-                if (ev.target.value && !(cur && cur.text)) logAction(m, `${m.name} takes a ${lv.name} injury: ${ev.target.value} — ${injuryPenalty(lv).text}`);
+                if (ev.target.value && !(cur && cur.text)) {
+                  logAction(m, `${m.name} takes a ${lv.name} injury: ${ev.target.value} — ${injuryPenalty(lv).text}`);
+                  const after = rest.concat([{ slot: key, text: ev.target.value }]);
+                  if (injurySlots(m, lv).every((s) => after.some((x) => typeof x === 'object' && x.slot === s.key && x.text))) armInjury(m, true);
+                }
               } });
             }),
           ]);

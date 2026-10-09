@@ -114,7 +114,9 @@ and gets their sheet: tracks, ratings, rolls, picks, items, injuries and their o
 +1D / +1E toggles for the next roll; the Effect the GM set, from the book's Poor—Limited—Reasonable—Superb,
 so the roll line names the Effect reached; the chosen special abilities as buttons that spend, arm
 and log what their text says — one for "each player's next roll" arms every sheet at the table; each injury level's boxes with − and +, the worst one's penalty on the
-roll; an injury taken, or Guts or Stress used up, is told to the table), a blood-red bar across the top once a behaviour at the limit or a mortal injury is set, and
+roll when *the injury applies to the next roll* is ticked — it ticks itself when a level fills, one
+roll spends it, and it can be ticked by hand; an injury taken, or Guts or Stress used up, is told to
+the table), a blood-red bar across the top once a behaviour at the limit or a mortal injury is set, and
 *At the table*, everyone's rolls, in a column on the right (beside the map, a pane of its own under
 the sheet); a banner with *Retry now* appears if the connection drops; they
 can switch the page to the map, or to the map with a compact sheet beside it (and back to the
