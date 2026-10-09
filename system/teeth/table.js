@@ -404,6 +404,16 @@ window.VttSystem = (function () {
     const t = D.entity(m.templateId);
     return t ? t.name + (t.type ? ' · ' + t.type : '') : '';
   }
+  // a line under the name on the claim page: the playbook's Tagline, else the first sentence of its Description
+  function memberBlurb(m) {
+    const t = D.entity(m.templateId);
+    if (!t) return '';
+    const tag = D.propValue(t, 'Tagline');
+    if (typeof tag === 'string' && tag.trim()) return tag.trim();
+    const desc = D.propValue(t, 'Description') || t.desc || '';
+    const first = (String(desc).match(/^[^.!?]*[.!?]/) || [String(desc)])[0].trim();
+    return first.length > 160 ? first.slice(0, 158).replace(/\s+\S*$/, '') + '…' : first;
+  }
 
-  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenPalette, tokenIcons, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, rollLine, memberSubtitle, MODULE_MAPS };
+  return { scenes, pages, cast, booksFor, playBooks, portrait, sceneFigures, placeTokens, currentSceneId, maps, mapDef, defaultMapId, legend, mapAssets, tokenSources, tokenColor, tokenPalette, tokenIcons, tokenStatus, selectToken, tokenMenu, liveSheet, readCharacter, downloadCharacter, rollLine, memberSubtitle, memberBlurb, MODULE_MAPS };
 })();

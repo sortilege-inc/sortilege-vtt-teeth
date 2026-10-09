@@ -108,7 +108,8 @@ stay) and releases every claim — one op, one Undo.
 ## Sessions — players on their own devices
 
 **Start session** in the sidebar creates a room and shows a code and a join link
-(`gm/play.html?s=CODE`). A player opens it on their phone, claims one of the party's characters
+(`gm/play.html?s=CODE`). A player opens it on their phone, reads a line about each of the party's
+characters and can preview a sheet before choosing, claims one
 — or **Load my character file…**, on the join screen or the claim screen, brings the one they
 made on the site's creator: it joins the party (and so the campaign pack) and is theirs the
 moment the room is online —
