@@ -273,6 +273,9 @@ body.player .token.mine { cursor: grab; }
 .token .ini { font-weight: 600; }
 .token .label { font-family: var(--serif); fill: #fbf6ea; paint-order: stroke; stroke: #1a1613; stroke-width: 3px; stroke-linejoin: round; }
 .token .pip { fill: var(--blood-2); stroke: #1a1613; stroke-width: 1; }
+.token .pip.off { fill: #efe6d3; }
+.token.down .body { stroke: var(--blood-2); stroke-width: 3; }
+.token.down image, .token.down .ini { opacity: 0.45; }
 .token.selected .ring-outline { stroke: #fbf6ea !important; stroke-dasharray: 6 4; }
 .token.hidden-token .body { stroke-dasharray: 4 4; }
 .token.hidden-token { opacity: 0.45; }

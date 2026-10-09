@@ -341,9 +341,18 @@
       g.appendChild(s('circle', { class: 'body', r, stroke: color, 'stroke-width': 1.5 }));
       if (t.image) g.appendChild(s('image', { href: t.image, x: -r, y: -r, width: 2 * r, height: 2 * r, 'clip-path': 'circle(50%)' }));
       else g.appendChild(s('text', { class: 'ini', 'text-anchor': 'middle', 'dominant-baseline': 'central', 'font-size': r * 0.9 }, [initials(t.label)]));
-      (status && status.pips ? status.pips : []).slice(0, 6).forEach((pip, i) => {
-        const a = -Math.PI / 2 + (i - 2.5) * 0.42;
-        g.appendChild(s('circle', { class: 'pip', cx: Math.cos(a) * (r + 3), cy: Math.sin(a) * (r + 3), r: Math.max(3, c * 0.09) }, [s('title', {}, [pip])]));
+      // pips over the top of the ring: the system's (an injury level, red) and the token's harm clock
+      // (one per segment, red when filled); a string pip is a filled one with that title
+      const pips = (status && status.pips ? status.pips : []).map((p) => (typeof p === 'string' ? { title: p, on: true } : p));
+      if (t.clock && t.clock.segments > 0) {
+        for (let i = 0; i < t.clock.segments; i++) pips.push({ title: `Harm ${t.clock.filled || 0} / ${t.clock.segments}`, on: i < (t.clock.filled || 0), clock: true });
+        if ((t.clock.filled || 0) >= t.clock.segments) g.classList.add('down');
+      }
+      const n = Math.min(pips.length, 12);
+      const spread = Math.min(Math.PI * 0.8, 0.42 * (n - 1));
+      pips.slice(0, 12).forEach((pip, i) => {
+        const a = -Math.PI / 2 + (n > 1 ? -spread / 2 + (i * spread) / (n - 1) : 0);
+        g.appendChild(s('circle', { class: 'pip' + (pip.on ? '' : ' off') + (pip.clock ? ' clock' : ''), cx: Math.cos(a) * (r + 3), cy: Math.sin(a) * (r + 3), r: Math.max(3, c * 0.09) }, [s('title', {}, [pip.title || ''])]));
       });
       const label = status && status.text && (!PLAYER || t.kind === 'party') ? `${t.label} · ${status.text}` : t.label;
       g.appendChild(s('text', { class: 'label', 'text-anchor': 'middle', y: r + Math.max(12, c * 0.3), 'font-size': Math.max(11, c * 0.24) }, [label]));
@@ -400,7 +409,8 @@
   function switchMap(id, refit) {
     mapId = id;
     sceneId = mapScene(id);
-    selectedId = null;
+    if (typeof closeMenu === 'function') closeMenu();     // a menu open over the last map does not follow
+    select([]);
     selectedEffect = null;
     loadMap();
     renderAll();
@@ -488,6 +498,7 @@
     if (t && !PLAYER && !panning) {
       select([t.id]);
       renderTokens();
+      buildToolbar();
     }
     const onEffect = e.target.closest && e.target.closest('.effect');
     const shapeTool = tool === 'circle' || tool === 'line' || tool === 'square';
@@ -633,6 +644,7 @@
         select([]);
       }
       renderTokens();
+      buildToolbar();
       syncHint();
     } else if (drag.kind === 'tool') {
       layers.preview.innerHTML = '';
@@ -732,6 +744,11 @@
         renderTokens();
         return;
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        copySelected();
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         const copies = sel.map((t) => Object.assign({}, JSON.parse(JSON.stringify(t)), { id: State.genId('tk'), x: t.x + 1, y: t.y }));
@@ -741,6 +758,11 @@
         renderTokens();
         return;
       }
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+      e.preventDefault();
+      pasteTokens();
+      return;
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && !(e.target instanceof HTMLInputElement)) {
       if (selectedEffect) {
@@ -803,6 +825,31 @@
   }
   let preloaded = null;
 
+  // copy the selected tokens; paste them on whatever map is showing, keeping their spacing, around the
+  // centre of the view, with new ids (Ctrl+C / Ctrl+V, or the toolbar)
+  let clipboard = [];
+  function copySelected() {
+    const sel = selectedTokens();
+    if (!sel.length) return;
+    clipboard = sel.map((t) => JSON.parse(JSON.stringify(t)));
+    buildToolbar();
+    syncHint();
+  }
+  function pasteTokens() {
+    if (!clipboard.length) return;
+    const xs = clipboard.map((t) => t.x);
+    const ys = clipboard.map((t) => t.y);
+    const cx = (Math.min.apply(null, xs) + Math.max.apply(null, xs)) / 2;
+    const cy = (Math.min.apply(null, ys) + Math.max.apply(null, ys)) / 2;
+    const at = toCell(view.x + view.w / 2, view.y + view.h / 2);
+    const made = clipboard.map((t) => Object.assign({}, JSON.parse(JSON.stringify(t)), { id: State.genId('tk'), x: snap(t.x - cx + at.x), y: snap(t.y - cy + at.y) }));
+    made.forEach((t) => map.tokens.push(t));
+    select(made.map((t) => t.id));
+    persist();
+    renderTokens();
+    buildToolbar();
+    syncHint();
+  }
   function removeTokens(ids) {
     const gone = new Set(ids);
     map.tokens = map.tokens.filter((x) => !gone.has(x.id));
@@ -895,6 +942,18 @@
     const apply = (fn) => { targets.forEach(fn); persist(); renderTokens(); refreshMenu(); };
     const openSheet = targets.length === 1 && (t.kind === 'party' || (t.kind === 'cast' && t.ref)) ? el('button', { class: 'btn', onclick: () => { Sys.selectToken(t); closeMenu(); } }, [t.kind === 'party' ? 'Open sheet' : 'Open entry']) : null;
     const title = targets.length > 1 ? `${targets.length} tokens` : t.label;
+    // a harm clock on an NPC: so many segments, filled one at a time, like an injury track
+    let clockRow = null;
+    if (t.kind !== 'party') {
+      const ck = t.clock || { segments: 0, filled: 0 };
+      const seg = el('input', { type: 'number', class: 'vtt-num', min: '0', max: '12', step: '1', value: String(ck.segments || 0), title: 'Segments (0 for none)' });
+      seg.addEventListener('change', () => { const n = Math.max(0, Math.min(12, parseInt(seg.value, 10) || 0)); apply((x) => { x.clock = n ? { segments: n, filled: Math.min(n, (x.clock && x.clock.filled) || 0) } : null; }); });
+      const minus = el('button', { class: 'btn ghost tiny', onclick: () => apply((x) => { if (x.clock) x.clock.filled = Math.max(0, (x.clock.filled || 0) - 1); }) }, ['−']);
+      const plus = el('button', { class: 'btn ghost tiny', onclick: () => apply((x) => { if (x.clock) x.clock.filled = Math.min(x.clock.segments, (x.clock.filled || 0) + 1); }) }, ['+']);
+      minus.disabled = !ck.segments || !ck.filled;
+      plus.disabled = !ck.segments || ck.filled >= ck.segments;
+      clockRow = el('div', { class: 'row' }, [el('span', { class: 'muted' }, ['Harm']), seg, el('span', { class: 'muted' }, ['segments']), ck.segments ? el('b', {}, [`${ck.filled || 0} / ${ck.segments}`]) : null, minus, plus, ck.segments && ck.filled >= ck.segments ? el('span', { class: 'muted' }, ['full — down']) : null]);
+    }
     const palette = Sys.tokenPalette ? Sys.tokenPalette() : [];
     const current = t.color || Sys.tokenColor(t);
     const swatches = palette.map((c) => el('button', { class: 'swatch' + (c.color.toLowerCase() === current.toLowerCase() ? ' on' : ''), title: c.name, style: 'background:' + c.color, onclick: () => apply((x) => (x.color = c.color)) }));
@@ -915,7 +974,7 @@
     const hide = el('button', { class: 'btn ghost', onclick: () => { const h = targets.some((x) => !x.hidden); targets.forEach((x) => (x.hidden = h)); persist(); renderTokens(); closeMenu(); } }, [targets.some((x) => !x.hidden) ? 'Hide from players' : 'Reveal to players']);
     const rename = targets.length === 1 ? el('button', { class: 'btn ghost', onclick: () => { const n = prompt('Label', t.label); if (n) { t.label = n; persist(); renderTokens(); } closeMenu(); } }, ['Rename']) : null;
     const remove = el('button', { class: 'btn danger', onclick: () => { removeTokens(targets.map((x) => x.id)); closeMenu(); } }, [targets.length > 1 ? `Remove ${targets.length} tokens` : 'Remove token']);
-    const body = el('div', { class: 'vtt-menu token-menu' }, [el('h4', {}, [title]), ringRow, iconRow, labelRow, sizeRow, el('div', { class: 'row' }, [openSheet, hide, rename, remove])]);
+    const body = el('div', { class: 'vtt-menu token-menu' }, [el('h4', {}, [title]), ringRow, iconRow, labelRow, sizeRow, clockRow, el('div', { class: 'row' }, [openSheet, hide, rename, remove])]);
     const extra = Sys.tokenMenu(t, () => { renderTokens(); refreshMenu(); });   // the system's rows keep the menu open and fresh
     if (extra) body.appendChild(extra);
     return body;
@@ -1069,6 +1128,10 @@
     });
     toolbar.appendChild(el('div', { class: 'group' }, [addSel]));
 
+    const copyBtn = el('button', { class: 'btn ghost', title: 'Copy the selected tokens (Ctrl+C); switch maps and Paste', onclick: copySelected }, [selectedIds.size > 1 ? `Copy ${selectedIds.size}` : 'Copy']);
+    copyBtn.disabled = !selectedIds.size;
+    const pasteBtn = el('button', { class: 'btn ghost', title: 'Paste the copied tokens here, around the centre of the view (Ctrl+V)', onclick: pasteTokens }, [clipboard.length ? `Paste ${clipboard.length}` : 'Paste']);
+    pasteBtn.disabled = !clipboard.length;
     const selectedFx = selectedEffect ? map.effects.find((x) => x.id === selectedEffect) : null;
     const removeFx = selectedFx ? el('button', { class: 'btn danger', title: 'Remove the selected shape (Delete does the same)', onclick: () => removeEffect(selectedFx.id) }, ['Remove ' + selectedFx.kind]) : null;
     const clearFx = map.effects.length ? el('button', { class: 'btn ghost', title: 'Remove every circle, line and square on this map', onclick: () => { if (confirm(`Remove all ${map.effects.length} shapes on this map?`)) { map.effects = []; selectedEffect = null; persist(); renderEffects(); buildToolbar(); syncHint(); } } }, ['Clear']) : null;
@@ -1081,6 +1144,8 @@
       toolButton('ruler', 'Ruler', 'Drag to measure, in cells'),
       removeFx,
       clearFx,
+      copyBtn,
+      pasteBtn,
     ]));
 
     const resetFog = el('button', { class: 'btn ghost', onclick: () => { map.fog.revealed = []; persist(); renderBase(); } }, ['Reset']);
@@ -1129,7 +1194,7 @@
     const shapes = map.effects.length ? ` · ${map.effects.length} shape${map.effects.length === 1 ? '' : 's'}: click one to select it` : '';
     const k = selectedIds.size;
     const selNote = k > 1 ? `${k} selected · drag one to move them all · ` : '';
-    hint.textContent = note + selNote + (n ? `${n} token${n === 1 ? '' : 's'} · click a token for its options (ring, face, name, size) · drag to move · drag a box to select · right-drag, arrows, Space or the middle button pan · selected: 1–4 size, H hide, Ctrl+D duplicate, Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
+    hint.textContent = note + selNote + (n ? `${n} token${n === 1 ? '' : 's'} · click a token for its options (ring, face, name, size, harm clock) · drag to move · drag a box to select · right-drag, arrows, Space or the middle button pan · selected: 1–4 size, H hide, Ctrl+D duplicate, Ctrl+C copy (Ctrl+V pastes on any map), Delete removes · wheel zooms · Esc clears the tool` : 'No tokens yet — add the party and the cast from the toolbar.') + shapes;
   }
 
   // ── bus ────────────────────────────────────────────────────────────

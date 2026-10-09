@@ -330,9 +330,19 @@ window.VttSystem = (function () {
     if (t.kind !== 'party') return null;
     const m = (S().party || []).find((x) => x.id === t.owner);
     if (!m) return null;
-    // the token wears the conditions (Hysteria, an injury, a resource used up), not the tracks' numbers
-    const conds = window.TeethSheet && window.TeethSheet.conditions ? window.TeethSheet.conditions(m) : [];
-    return { text: conds.join(' · '), pips: [], cls: conds.length ? 'afflicted' : '' };
+    // the token wears its conditions, not the tracks' numbers: an injury as red pips above the ring
+    // (one per level — Level two is two), the rest (Hysteria, a resource used up) in the label
+    const TS = window.TeethSheet;
+    const conds = TS && TS.conditions ? TS.conditions(m) : [];
+    const worst = TS && TS.worstInjury ? TS.worstInjury(m) : null;
+    const pips = [];
+    if (worst) {
+      const lvl = D.propValue(worst, 'Level') || 1;
+      const pen = TS.injuryPenalty(worst);
+      for (let i = 0; i < lvl; i++) pips.push(`${worst.name}${pen.text ? ' · ' + pen.text : ''}`);
+    }
+    const text = conds.filter((c) => !/^Injured:/.test(c)).join(' · ');
+    return { text, pips, cls: conds.length ? 'afflicted' : '' };
   }
 
   function selectToken(t) {
